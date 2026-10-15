@@ -26,8 +26,8 @@ canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-ac
 #hud.show{display:block}
 #hud .top{position:absolute;top:calc(6px + var(--sat));left:calc(10px + var(--sal));right:calc(10px + var(--sar));
   display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-#lives{display:flex;gap:4px;padding:5px 8px;border-radius:14px;background:rgba(0,0,0,.22)}
-#lives .life{width:clamp(22px,6vh,32px);height:clamp(22px,6vh,32px);transition:transform .25s,opacity .25s,filter .25s}
+#lives{display:flex;gap:2px;padding:5px 8px;border-radius:14px;background:rgba(0,0,0,.22)}
+#lives .life{width:clamp(16px,4.8vh,26px);height:clamp(16px,4.8vh,26px);transition:transform .25s,opacity .25s,filter .25s}
 #lives .life.lost{opacity:.28;filter:grayscale(1);transform:scale(.82)}
 #lives .life.hurt{animation:hurt .5s}
 @keyframes hurt{0%,100%{transform:scale(1)}30%{transform:scale(1.35) rotate(-10deg)}60%{transform:scale(.9) rotate(8deg)}}
@@ -57,7 +57,7 @@ canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-ac
   background:linear-gradient(#e64a3b 0 66%,#d9a742 66% 100%);box-shadow:inset -2px 0 0 rgba(0,0,0,.25);transition:opacity .15s,transform .15s}
 #ammo .shell.spent{opacity:.18;transform:translateY(3px)}
 #hud[data-phase="1"] #lives,#hud[data-phase="1"] #ammo{background:rgba(20,8,14,.32)}
-#hud[data-phase="2"] #lives,#hud[data-phase="2"] #ammo{background:rgba(30,4,8,.42)}
+#hud[data-phase="2"] #lives,#hud[data-phase="2"] #ammo,#hud[data-phase="3"] #lives,#hud[data-phase="3"] #ammo{background:rgba(30,4,8,.42)}
 #hud[data-phase="2"] .hbtn{background:rgba(25,6,10,.62);border-color:rgba(255,190,190,.25)}
 #hud[data-phase="2"] #mult{background:rgba(200,160,120,.9)}
 #hint{position:absolute;left:50%;top:26%;transform:translateX(-50%);padding:9px 16px;border-radius:14px;background:rgba(0,0,0,.5);
@@ -259,6 +259,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <div class="set"><label for="sFx">Efeitos visuais</label><input type="range" id="sFx" min="0" max="100" step="5"><span class="val" id="vFx"></span></div>
     <div class="set"><label>Modo de mira</label><div class="opts" data-opt="aimMode"><button data-v="drag">Arrastar</button><button data-v="direct">Toque direto</button></div></div>
     <div class="set"><label>Susto final</label><div class="opts" data-opt="jumpscare"><button data-v="full">Completo</button><button data-v="reduced">Reduzido</button><button data-v="off">Desativado</button></div></div>
+    <div class="set"><label>Tremores de tela</label><div class="opts" data-opt="reduceShake"><button data-v="false">Normal</button><button data-v="true">Reduzidos</button></div></div>
+    <div class="set"><label>Flashes e luz</label><div class="opts" data-opt="reduceFlash"><button data-v="false">Normal</button><button data-v="true">Reduzidos</button></div></div>
     <div class="set"><label>Distorção visual</label><div class="opts" data-opt="reduceDistortion"><button data-v="false">Normal</button><button data-v="true">Reduzida</button></div></div>
     <div class="set"><label>Qualidade gráfica</label><div class="opts" data-opt="quality"><button data-v="auto">Auto</button><button data-v="high">Alta</button><button data-v="medium">Média</button><button data-v="low">Baixa</button></div></div>
     <div class="note" id="saveNote">As configurações são salvas automaticamente neste aparelho.</div>
@@ -290,7 +292,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <ul>
       <li><b>Arraste</b> o dedo pela tela para mover a mira. <b>Toque</b> rapidamente para atirar. Com um dedo mirando, um toque com outro dedo também dispara.</li>
       <li>A espingarda tem <b>6 cartuchos</b>. Quando acabarem, toque em <b>RECARGA</b> (canto inferior esquerdo). Durante a recarga não é possível atirar.</li>
-      <li>Cada pato que <b>escapa</b> da tela custa <b>1 vida</b>. Você tem 3 vidas.</li>
+      <li>Cada pato que <b>escapa</b> da tela custa <b>1 vida</b>. Você tem 7 vidas.</li>
       <li>Acertos seguidos aumentam o <b>multiplicador</b> (até x5). Um tiro errado zera a sequência.</li>
       <li>Pontos viram <b>moedas</b> no fim da partida. Use-as na loja para trocar a aparência da arma.</li>
       <li>Fique atento ao lago. Ele parece tranquilo... no começo.</li>
@@ -369,19 +371,21 @@ const CONFIG = {
   magazine: 6,            // cartuchos por carregador
   reloadTime: 1.2,        // segundos de recarga
   fireCooldown: 0.2,      // intervalo mínimo entre disparos (ação de bombeamento)
-  lives: 3,
+  lives: 7,               // uma vida por nível de tensão: o 7º pato escapado inicia o colapso final
   hitScale: 1.25,         // folga da caixa de colisão dos patos (facilita em telas pequenas)
   minHitRadius: 0.035,    // raio mínimo de acerto (fração da altura da tela)
   combo: { hitsPerStep: 3, maxMult: 5 },      // multiplicador = 1 + floor(sequência / hitsPerStep), até maxMult
+  // TENSÃO AMBIENTAL: o nível (0–7) é exatamente o número de patos escapados na partida.
+  // Ele só sobe, nunca volta. O 7º escape ativa o colapso vermelho e o susto final.
   tension: {
-    min: 0, max: 100,
-    hit: 0.62,            // tensão por acerto
-    miss: 0.95,           // tensão por erro
-    streakBonus: 0.06,    // bônus por acerto consecutivo (x sequência)
-    streakBonusCap: 0.75, // teto do bônus de sequência
-    jitter: 0.18,         // variação aleatória (deixa o momento final imprevisível)
-    visualEase: 0.55      // velocidade de transição visual
+    collapseAt: 7,
+    levelVis: [0, 0.15, 0.3, 0.45, 0.6, 0.76, 0.9], // intensidade visual de cada nível (0–6); o 7 é o colapso
+    innerHit: 0.008, innerMiss: 0.012, innerStreak: 0.002, innerCap: 0.05, // inquietação dentro do nível (nunca troca de nível)
+    visualEase: 0.7,                                // velocidade da transição entre níveis (gradual)
+    anomalyEvery: [30, 16, 12, 9, 7, 5, 3.4]        // intervalo médio (s) entre anomalias em cada nível
   },
+  // Linha do tempo do evento final (segundos desde o 7º escape)
+  jumpscare: { collapse: 1.2, appear: 1.75, fadeOut: 3.1, end: 3.6 },
   coins: { pointsPerCoin: 40 },
   difficulties: {
     easy:    { name: 'Fácil',   desc: 'Patos lentos e poucos ao mesmo tempo.', speed: 0.20, speedMax: 1.45, spawn: 2.2, spawnMin: 1.15, maxDucks: 2, maxDucksCap: 3, wobble: 0.6,  rampTime: 260, life: [7.5, 10], coinMul: 0.8 },
@@ -451,7 +455,7 @@ function rewardText(a){
 
 /* ------------------------- SALVAMENTO LOCAL ------------------------- */
 const SAVE_KEY = 'oUltimoPato.save.v1';
-const DEFAULT_SETTINGS = { master: 0.8, music: 0.65, sfx: 0.85, sens: 1.0, fx: 1.0, jumpscare: 'full', reduceDistortion: false, aimMode: 'drag', quality: 'auto' };
+const DEFAULT_SETTINGS = { master: 0.8, music: 0.65, sfx: 0.85, sens: 1.0, fx: 1.0, jumpscare: 'full', reduceDistortion: false, reduceShake: false, reduceFlash: false, aimMode: 'drag', quality: 'auto' };
 function defaultSave(){
   return { version: 1, best: 0, bestByDiff: { easy: 0, normal: 0, hard: 0, extreme: 0 }, coins: 0, owned: ['classic'], equipped: 'classic',
     difficulty: 'normal', settings: Object.assign({}, DEFAULT_SETTINGS),
@@ -480,7 +484,7 @@ function sanitize(raw){
   d.settings = {
     master: vnum(s.master, DEFAULT_SETTINGS.master, 0, 1), music: vnum(s.music, DEFAULT_SETTINGS.music, 0, 1), sfx: vnum(s.sfx, DEFAULT_SETTINGS.sfx, 0, 1),
     sens: vnum(s.sens, 1, 0.3, 2.5), fx: vnum(s.fx, 1, 0, 1), jumpscare: venum(s.jumpscare, 'full', ['full', 'reduced', 'off']),
-    reduceDistortion: s.reduceDistortion === true, aimMode: venum(s.aimMode, 'drag', ['drag', 'direct']), quality: venum(s.quality, 'auto', ['auto', 'high', 'medium', 'low'])
+    reduceDistortion: s.reduceDistortion === true, reduceShake: s.reduceShake === true, reduceFlash: s.reduceFlash === true, aimMode: venum(s.aimMode, 'drag', ['drag', 'direct']), quality: venum(s.quality, 'auto', ['auto', 'high', 'medium', 'low'])
   };
   const st = raw.stats && typeof raw.stats === 'object' ? raw.stats : {};
   Object.keys(d.stats).forEach(k => { if (k !== 'completed') d.stats[k] = vint(st[k], 0, 0, 1e12); });
@@ -500,6 +504,12 @@ const Store = {
   }
 };
 const S = () => Store.data.settings;
+// Multiplicadores de acessibilidade: reduzem a APRESENTAÇÃO, nunca a regra dos 7 níveis.
+const FX = {
+  shake(){ return S().fx * (S().reduceShake ? 0.15 : 1); },
+  flash(){ return S().fx * (S().reduceFlash ? 0.2 : 1); },
+  dist(){ return S().fx * (S().reduceDistortion ? 0.25 : 1); }
+};
 
 /* ------------------------------ ÁUDIO ------------------------------ */
 // Todo som é sintetizado com Web Audio. Barramentos: geral -> música / efeitos (ambiente passa por efeitos).
@@ -507,7 +517,7 @@ const midiF = m => 440 * Math.pow(2, (m - 69) / 12);
 const SND = {
   ctx: null, master: null, musicVol: null, musicDuck: null, musicBus: null, sfxVol: null, sfxBus: null, ambDuck: null, ambBus: null,
   noise: null, distCurve: null, softCurve: null, musicOn: false, nextStep: 0, step: 0, paused: false,
-  walkCalm: 4, walkUneasy: 3, drone: null, amb: null, lastQuack: 0, birdT: 3, whisperT: 8, ambT: 0,
+  walkCalm: 4, walkUneasy: 3, drone: null, hum: null, amb: null, level: 0, dropUntil: 0, dipUntil: 0, detNow: 0, lastQuack: 0, birdT: 3, whisperT: 8, ambT: 0,
   init(){
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(()=>{}); return; }
     try {
@@ -549,7 +559,8 @@ const SND = {
     const osc = c.createOscillator(); osc.type = o.type || 'sine';
     osc.frequency.setValueAtTime(o.freq, t);
     if (o.freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.freqEnd), t + (o.slide || dur));
-    if (o.detune) osc.detune.setValueAtTime(o.detune, t);
+    const det = (o.detune || 0) + (o.bus === this.musicBus ? this.detNow : 0);
+    if (det) osc.detune.setValueAtTime(det, t);
     const g = c.createGain(); g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(o.gain, t + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -622,6 +633,7 @@ const SND = {
   /* ---- pausa / estados ---- */
   setPaused(p){
     this.paused = p; if (!this.ctx) return; const t = this.now;
+    this.ambDuck.gain.cancelScheduledValues(t); this.ambDuck.gain.setValueAtTime(this.ambDuck.gain.value, t);
     this.musicDuck.gain.setTargetAtTime(p ? 0 : 1, t, p ? 0.08 : 0.25);
     this.ambDuck.gain.setTargetAtTime(p ? 0.25 : 1, t, 0.15);
     if (p) this.noiseHit({ dur: 0.35, gain: 0.08, filter: 'lowpass', ff: 2500, ffEnd: 200 });
@@ -639,7 +651,12 @@ const SND = {
       o1.frequency.value = 55; o2.frequency.value = 55 * 1.027; o3.frequency.value = 77.8;
       o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g); g.connect(this.musicBus); o1.start(); o2.start(); o3.start();
       this.drone = { g, f };
+      // zumbido distante (nível 4+)
+      const hg = c.createGain(); hg.gain.value = 0; const h1 = c.createOscillator(), h2 = c.createOscillator();
+      h1.frequency.value = 49; h2.frequency.value = 98.6; h1.connect(hg); h2.connect(hg); hg.connect(this.musicBus); h1.start(); h2.start();
+      this.hum = hg;
     }
+    if (this.hum){ this.hum.gain.cancelScheduledValues(t); this.hum.gain.setValueAtTime(0, t); }
   },
   stopMusic(fast){
     this.musicOn = false; if (!this.ctx) return; const t = this.now;
@@ -653,6 +670,31 @@ const SND = {
     this.tone({ t, type: 'sawtooth', freq: 220, freqEnd: 18, slide: 0.45, dur: 0.5, gain: 0.12, filter: 'lowpass', ff: 1500, ffEnd: 80, bus: this.musicVol });
     this.tone({ t, type: 'sine', freq: 110, freqEnd: 12, slide: 0.5, dur: 0.55, gain: 0.18, bus: this.musicVol });
     this.ambDuck.gain.setTargetAtTime(0, t, 0.05);
+  },
+  /* ---- tensão por nível ---- */
+  setLevel(l){ this.level = l; },
+  // som sutil, sem origem clara, quando o nível sobe
+  levelCue(l){
+    if (!this.ctx || l >= 7) return; const t = this.now;
+    if (l <= 2) this.tone({ t, type: 'sine', freq: rand(180, 240), freqEnd: rand(120, 160), dur: 1.8, attack: 0.6, gain: 0.03, bus: this.ambBus });
+    else { this.noiseHit({ t, dur: 1.6, gain: 0.03 + 0.008 * l, filter: 'bandpass', ff: rand(300, 600), q: 3, attack: 0.8, bus: this.ambBus }); this.tone({ t, type: 'sine', freq: 55, dur: 1.5, attack: 0.4, gain: 0.04 + 0.012 * l, bus: this.ambBus }); }
+  },
+  // pausa breve do som ambiente
+  hush(){
+    if (!this.ctx || this.paused) return; const t = this.now, d = rand(1, 2.4), g = this.ambDuck.gain;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.setTargetAtTime(0.05, t, 0.08); g.setTargetAtTime(1, t + d, 0.3);
+  },
+  drop(){ if (this.ctx) this.dropUntil = this.now + rand(1.2, 2.4); },   // a música some por um instante
+  dip(){ if (this.ctx) this.dipUntil = this.now + rand(1.5, 2.5); },     // a música desacelera e recupera
+  // colapso do nível 7: a trilha para de forma dramática, o lago some e restam graves de colapso
+  collapse(mode){
+    if (!this.ctx) return; const t = this.now;
+    this.tapeStop();
+    if (mode === 'off') return;
+    const k = mode === 'reduced' ? 0.35 : 1; // nunca acima do volume configurado
+    this.tone({ t, type: 'sine', freq: 70, freqEnd: 22, dur: 1.3, gain: 0.5 * k });
+    this.noiseHit({ t, dur: 0.9, gain: 0.28 * k, filter: 'lowpass', ff: 900, ffEnd: 80, dist: this.distCurve });
+    this.tone({ t: t + 0.05, type: 'sawtooth', freq: 110, freqEnd: 40, slide: 1, dur: 1.1, gain: 0.08 * k, filter: 'lowpass', ff: 600, dist: this.softCurve });
   },
   scream(mode){
     if (!this.ctx) return; const t = this.now;
@@ -682,7 +724,7 @@ const SND = {
   startAmbient(){
     const c = this.ctx; if (!c || this.amb) return;
     const mkLoop = () => { const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; return s; };
-    const w = mkLoop(), wf = c.createBiquadFilter(), wg = c.createGain(); wf.type = 'lowpass'; wf.frequency.value = 520; wg.gain.value = 0;
+    const w = mkLoop(), wf = c.createBiquadFilter(), wg = c.createGain(); this.wf = wf; wf.type = 'lowpass'; wf.frequency.value = 520; wg.gain.value = 0;
     w.connect(wf); wf.connect(wg); wg.connect(this.ambBus); w.start();
     const wi = mkLoop(), wif = c.createBiquadFilter(), wig = c.createGain(); wif.type = 'bandpass'; wif.frequency.value = 500; wif.Q.value = 0.9; wig.gain.value = 0;
     wi.playbackRate.value = 0.7; wi.connect(wif); wif.connect(wig); wig.connect(this.ambBus); wi.start();
@@ -695,6 +737,9 @@ const SND = {
     const t = this.now;
     this.amb.wg.gain.setTargetAtTime(active ? 0.05 * (1 - v * 0.6) : 0.035, t, 0.4);
     this.amb.wig.gain.setTargetAtTime(active ? 0.012 + 0.07 * v * v : 0.01, t, 0.6);
+    const lv = active ? this.level : 0; // sons naturais mais distantes e tonalidade alterada a cada nível
+    this.wf.frequency.setTargetAtTime(520 - lv * 45, t, 0.8);
+    this.amb.wif.Q.setTargetAtTime(0.9 + lv * 0.5, t, 0.8);
     if (this.paused) return;
     this.birdT -= step;
     if (this.birdT <= 0){
@@ -726,8 +771,15 @@ const SND = {
     const c = this.ctx; if (!c || !this.musicOn || this.paused) return;
     const now = c.currentTime;
     if (this.nextStep < now - 0.25) this.nextStep = now + 0.05;
-    const bpm = 82 + 34 * v, sd = 60 / bpm / 2;
-    while (this.nextStep < now + 0.14){ this.playStep(this.step, this.nextStep, v, sd); this.nextStep += sd; this.step++; }
+    const dip = now < this.dipUntil;
+    this.detNow = dip ? -80 : 0;
+    const bpm = (82 + 34 * v) * (dip ? 0.6 : 1), sd = 60 / bpm / 2, lv = this.level;
+    while (this.nextStep < now + 0.14){
+      if (this.nextStep >= this.dropUntil) this.playStep(this.step, this.nextStep, v, sd);
+      // ritmo irregular a partir do nível 4
+      this.nextStep += sd * (lv >= 4 ? 1 + (Math.random() - 0.5) * 0.14 * (lv - 3) : 1); this.step++;
+    }
+    if (this.hum) this.hum.gain.setTargetAtTime(lv >= 4 ? 0.012 * (lv - 3) : 0, now, 0.8);
     if (this.drone){
       const un = clamp(1 - Math.abs(v - 0.5) * 2.6, 0, 1), dr = clamp((v - 0.55) / 0.4, 0, 1);
       this.drone.g.gain.setTargetAtTime(0.035 * un + 0.1 * dr, now, 0.5);
@@ -747,6 +799,8 @@ const SND = {
         this.walkCalm = clamp(this.walkCalm + pick([-2, -1, -1, 1, 1, 2, 0]), 0, pent.length - 1);
         this.tone({ t: t + (Math.random() < 0.15 ? sd * 0.5 : 0), type: 'triangle', freq: midiF(pent[this.walkCalm]), dur: 0.55, gain: 0.07 * calm, bus: B });
       }
+      // notas discretamente fora do lugar a partir do nível 1
+      if (this.level >= 1 && Math.random() < 0.035 * this.level) this.tone({ t, type: 'sine', freq: midiF(pick([61, 63, 66, 70])), dur: 0.9, gain: 0.03 * calm, bus: B });
     }
     if (une > 0.02){
       if (s % 2 === 0) this.tone({ t, type: 'sawtooth', freq: midiF(root - 24), dur: sd * 0.9, gain: 0.05 * une, filter: 'lowpass', ff: 300, bus: B });
@@ -823,6 +877,7 @@ function buildLayout(){
   for (let i = 0; i < 22; i++) L.shimmer.push({ x: r() * W, y: r(), w: 0.02 + 0.05 * r(), sp: 3 + 8 * r(), ph: r() * TAU });
   L.decoy = { x: W * 0.36, y: horizon + (shore - horizon) * 0.42 };
   L.watcherX = W * (0.58 + 0.1 * r());
+  L.watchers = [{ x: W * 0.27, y: horizon + (shore - horizon) * 0.2 }, { x: W * 0.69, y: horizon + (shore - horizon) * 0.32 }, { x: W * 0.5, y: horizon + (shore - horizon) * 0.08 }];
 }
 
 /* ---------------------------- PALETTE ----------------------------- */
@@ -837,17 +892,28 @@ const PAL_HEX = {
   grass: ['#71c64c', '#58784a', '#131a10'], grassDark: ['#3f8f2f', '#334e2e', '#070906'], reed: ['#97652f', '#5b4231', '#1a0f0a'], cat: ['#6b3d1c', '#3d2618', '#0d0606'],
   fog: ['#ffffff', '#b7aebf', '#463844'], mote: ['#fff6a0', '#e8c49c', '#ff5038'], decoy: ['#6a4a30', '#3d2c22', '#120a0a']
 };
-const PAL = {}; Object.keys(PAL_HEX).forEach(k => PAL[k] = PAL_HEX[k].map(hexRgb));
-function pc(name, v){ const s = PAL[name]; return v < 0.5 ? mixc(s[0], s[1], v * 2) : mixc(s[1], s[2], (v - 0.5) * 2); }
+// Nível 7: paleta de colapso (carmesim, vinho, preto)
+const RED_HEX = {
+  skyTop: '#140103', skyMid: '#5a080b', skyHor: '#a3140f', sun: '#ff2a10', cloud: '#3a0507', cloudSh: '#160103',
+  hillFar: '#2a0406', hillNear: '#160203', treeFar: '#0c0102', treeFarHi: '#220306', pine: '#090102',
+  treeNear: '#050001', treeNearHi: '#1a0204', trunk: '#080102', water: '#3a0508', waterDeep: '#080102', waterHi: '#ff3020',
+  grass: '#1e0406', grassDark: '#0a0102', reed: '#2a0606', cat: '#120203', fog: '#8a1418', mote: '#ff4020', decoy: '#1a0204'
+};
+const PAL = {}, PAL_RED = {}; Object.keys(PAL_HEX).forEach(k => { PAL[k] = PAL_HEX[k].map(hexRgb); PAL_RED[k] = hexRgb(RED_HEX[k]); });
+function pc(name, v){
+  const s = PAL[name]; let c = v < 0.5 ? mixc(s[0], s[1], v * 2) : mixc(s[1], s[2], (v - 0.5) * 2);
+  if (Scene.R > 0) c = mixc(c, PAL_RED[name], Scene.R);
+  return c;
+}
 const pcs = (name, v, a) => rgb(pc(name, v), a);
 
 /* ----------------------------- SCENE ------------------------------ */
 const Scene = {
-  land: null, side: null, key: '', fogSprite: null, vign: null, sky: null, time: 0,
+  land: null, side: null, key: '', fogSprite: null, vign: null, sky: null, time: 0, R: 0, ripples: [],
   eyeT: 12, eyeOpen: 0, eyeIdx: 0, shadowT: 15, shadow: null,
   invalidate(){ this.key = ''; },
   ensure(v){
-    const q = Math.round(v * 40) / 40, key = W + 'x' + H + '@' + DPR + ':' + q;
+    const q = Math.round(v * 40) / 40, key = W + 'x' + H + '@' + DPR + ':' + q + 'r' + Math.round(this.R * 8);
     if (key === this.key) return; this.key = key; this.build(q);
   },
   build(v){
@@ -881,6 +947,8 @@ const Scene = {
     g.fillStyle = gg; g.beginPath(); g.moveTo(0, H);
     for (let x = 0; x <= W + 10; x += W / 24) g.lineTo(x, sh + H * 0.025 + Math.sin(x * 0.013 + 1) * H * 0.01);
     g.lineTo(W, H); g.closePath(); g.fill();
+    g.fillStyle = `rgba(0,0,0,${0.1 + 0.25 * v})`;
+    for (const t of L.sideTrees){ const len = t.s * (0.35 + v * 1.3); g.beginPath(); g.ellipse(t.x + t.dir * len * 0.55, sh + H * 0.045, len * 0.6, H * 0.018, 0, 0, TAU); g.fill(); }
     g.strokeStyle = pcs('grassDark', v); g.lineWidth = Math.max(1, H * 0.003); g.lineCap = 'round';
     for (const b of L.blades){ const y = sh + H * 0.03 + b.k * (H - sh) * 0.6; g.beginPath(); g.moveTo(b.x, y + b.h * 0.3); g.quadraticCurveTo(b.x + b.lean * b.h * 0.3, y - b.h * 0.4, b.x + b.lean * b.h, y - b.h); g.stroke(); }
     // névoa e vinheta
@@ -892,7 +960,8 @@ const Scene = {
     const rg = vgg.createRadialGradient(128, 128, 60, 128, 128, 182); rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, 'rgba(0,0,0,1)'); vgg.fillStyle = rg; vgg.fillRect(0, 0, 256, 256);
   },
   farTree(g, t, v, dv){
-    const s = t.s, x = t.x, y = t.y;
+    const s = t.s, y = t.y, twist = (t.shade - 0.5) * 0.9 * clamp((v - 0.4) / 0.5, 0, 1);
+    g.save(); g.translate(t.x, 0); g.transform(1, 0, twist, 1, -twist * y, 0); const x = 0; // silhuetas retorcidas a partir do nível 3
     const shrink = 1 - 0.3 * dv;
     if (t.kind === 'pine'){
       g.fillStyle = pcs('trunk', v); g.fillRect(x - s * 0.05, y - s * 0.3, s * 0.1, s * 0.3);
@@ -905,6 +974,7 @@ const Scene = {
       const rr0 = s * 0.42 * shrink; g.beginPath();
       g.arc(x - s * 0.22, y - s * 0.75, rr0, 0, TAU); g.arc(x + s * 0.22, y - s * 0.8, rr0 * 0.95, 0, TAU); g.arc(x, y - s * 1.05, rr0 * 1.05, 0, TAU); g.fill();
     }
+    g.restore();
   },
   sideTree(g, t, v, dv){
     const s = t.s, bx = t.x, by = L.shore + H * 0.05;
@@ -932,14 +1002,16 @@ const Scene = {
     this.eyeT -= dt;
     if (this.eyeOpen > 0) this.eyeOpen -= dt;
     if (this.eyeT <= 0){ this.eyeOpen = rand(0.25, 0.7) + v * 0.8; this.eyeIdx = (Math.random() * L.eyes.length) | 0; this.eyeT = active ? lerp(rand(22, 38), rand(3, 7), v) : rand(25, 45); }
-    // sombra misteriosa atravessando o lago
-    if (active && v > 0.28){
-      if (!this.shadow){ this.shadowT -= dt; if (this.shadowT <= 0){ const dir = Math.random() < 0.5 ? 1 : -1; this.shadow = { x: dir > 0 ? -W * 0.1 : W * 1.1, dir, y: lerp(L.horizon, L.shore, rand(0.25, 0.75)), sp: W * rand(0.25, 0.4) }; this.shadowT = lerp(20, 7, v); } }
-      else { this.shadow.x += this.shadow.dir * this.shadow.sp * dt; if (this.shadow.x < -W * 0.2 || this.shadow.x > W * 1.2) this.shadow = null; }
-    } else this.shadow = null;
+    // sombra misteriosa atravessando o lago (disparada pelas anomalias)
+    if (this.shadow){ this.shadow.x += this.shadow.dir * this.shadow.sp * dt; if (this.shadow.x < -W * 0.2 || this.shadow.x > W * 1.2) this.shadow = null; }
+    if (!active) this.shadow = null;
+    for (const r of this.ripples) r.t += dt;
+    this.ripples = this.ripples.filter(r => r.t < 1.8);
   },
-  drawBack(g, v, fxk){
-    const t = this.time;
+  startShadow(){ const dir = Math.random() < 0.5 ? 1 : -1; this.shadow = { x: dir > 0 ? -W * 0.1 : W * 1.1, dir, y: lerp(L.horizon, L.shore, rand(0.25, 0.75)), sp: W * rand(0.18, 0.32) }; },
+  addRipple(){ this.ripples.push({ x: W * rand(0.2, 0.8), y: lerp(L.horizon, L.shore, rand(0.15, 0.8)), t: 0 }); },
+  drawBack(g, v, lvl, R){
+    const t = this.time, dk = FX.dist();
     g.fillStyle = this.sky; g.fillRect(0, 0, W, L.horizon + 2);
     // sol
     const sx = W * 0.7, sy = lerp(H * 0.17, H * 0.46, smooth(clamp(v * 1.1, 0, 1))), sr = H * 0.06 * (1 + v * 0.35);
@@ -956,6 +1028,11 @@ const Scene = {
       g.fillStyle = cc; g.beginPath(); g.arc(x - s * 0.6, y, s * 0.5, 0, TAU); g.arc(x, y - s * 0.25, s * 0.68, 0, TAU); g.arc(x + s * 0.65, y, s * 0.5, 0, TAU); g.ellipse(x, y + s * 0.1, s * 1.35, s * 0.35, 0, 0, TAU); g.fill();
     }
     g.drawImage(this.land, 0, 0, W, H);
+    // anomalia: um trecho do fundo parece deslocado por um instante
+    if (Anom.on('shift') && dk > 0.02){ const sy = L.horizon - H * 0.11, sh = H * 0.07, dx = (Anom.seed > 0.5 ? 1 : -1) * H * 0.025 * dk; g.drawImage(this.land, 0, sy * DPR, this.land.width, sh * DPR, dx, sy, W, sh); }
+    // anomalia: o reflexo não corresponde ao que está acima da água
+    if (Anom.on('reflect') && dk > 0.02){ const sy = L.horizon + 2, sh = (L.shore - L.horizon) * 0.38; g.globalAlpha = 0.75; g.drawImage(this.land, 0, sy * DPR, this.land.width, sh * DPR, (Anom.seed - 0.5) * W * 0.12 * dk, sy, W, sh); g.globalAlpha = 1; }
+    Bg.draw(g, v, lvl, R);
     // olhos na mata
     if (this.eyeOpen > 0 && L.eyes.length){
       const e = L.eyes[this.eyeIdx], r = H * 0.0032 * (1 + v * 1.2), blink = Math.abs(Math.sin(this.eyeOpen * 9)) > 0.1 ? 1 : 0.15;
@@ -980,10 +1057,16 @@ const Scene = {
     // reflexo do sol
     g.fillStyle = rgb(sc, 0.35);
     for (let i = 0; i < 6; i++){ const y = hz + wh * (0.05 + i * 0.13), w = sr * (1.6 - i * 0.18) * (0.75 + 0.25 * Math.sin(t * 2 + i)); g.fillRect(sx - w / 2 + Math.sin(t * 1.3 + i * 2) * 4, y, w, Math.max(1.5, H * 0.006)); }
+    // ondulações sem causa visível
+    g.lineWidth = Math.max(1, H * 0.003);
+    for (const r of this.ripples){ const k = r.t / 1.8; g.strokeStyle = pcs('waterHi', v, 0.45 * (1 - k)); for (let i = 0; i < 3; i++){ const rr0 = H * 0.012 + (k + i * 0.18) * H * 0.07; g.beginPath(); g.ellipse(r.x, r.y, rr0 * 1.9, rr0 * 0.4, 0, 0, TAU); g.stroke(); } }
     // sombra misteriosa
     if (this.shadow){ const s = this.shadow; g.fillStyle = `rgba(0,0,0,${0.18 + 0.2 * v})`; g.beginPath(); g.ellipse(s.x, s.y, H * 0.09, H * 0.018, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(s.x + s.dir * H * 0.08, s.y - H * 0.004, H * 0.03, H * 0.012, 0, 0, TAU); g.fill(); }
     this.drawDecoy(g, v);
-    g.drawImage(this.side, 0, 0, W, H);
+    // anomalia: as árvores se inclinam por um instante
+    const lean = Anom.on('lean') ? Math.sin(Anom.frac('lean') * Math.PI) * 0.05 * dk * (Anom.seed > 0.5 ? 1 : -1) : 0;
+    if (lean){ g.save(); g.translate(0, H); g.transform(1, 0, lean, 1, 0, 0); g.translate(0, -H); g.drawImage(this.side, 0, 0, W, H); g.restore(); }
+    else g.drawImage(this.side, 0, 0, W, H);
   },
   // o "pato-chamariz" imóvel no lago: o primeiro detalhe estranho
   drawDecoy(g, v){
@@ -1042,10 +1125,10 @@ const Scene = {
 /* ----------------------------- DUCKS ------------------------------ */
 const duckColorCache = new Map();
 function duckColors(type, v){
-  const q = Math.round(v * 20) / 20, key = type.id + q;
+  const q = Math.round(v * 20) / 20, rq = Math.round(Scene.R * 4) / 4, key = type.id + q + 'r' + rq;
   let c = duckColorCache.get(key); if (c) return c;
   c = {};
-  for (const k in type.c){ c[k] = rgb(desat(hexRgb(type.c[k]), q * 0.65, q * 0.38)); }
+  for (const k in type.c){ c[k] = rgb(mixc(desat(hexRgb(type.c[k]), q * 0.65, q * 0.38), [40, 4, 6], rq * 0.75)); }
   c.pupil = rgb(mixc([20, 20, 30], [200, 20, 20], clamp((q - 0.5) * 2, 0, 1)));
   duckColorCache.set(key, c); return c;
 }
@@ -1058,6 +1141,7 @@ function drawDuck(g, d, v){
   if (d.state === 'hit') rot = Math.sin(d.hitT * 60) * 0.15;
   else if (d.state === 'falling') rot = d.spin;
   else rot = clamp(Math.sin(d.heading), -0.7, 0.7) * 0.45;
+  if (Scene.R > 0) rot += Math.sin(d.id * 3.1) * 0.6 * Scene.R; // congelados em ângulos impossíveis
   g.rotate(rot);
   const flap = (d.state === 'hit' || d.state === 'falling') ? 0.2 : Math.sin(d.flap);
   // asa de trás
@@ -1079,8 +1163,8 @@ function drawDuck(g, d, v){
   if (d.state === 'hit' || d.state === 'falling'){
     g.strokeStyle = '#1a1a1a'; g.lineWidth = 3; g.beginPath(); g.moveTo(43, -32); g.lineTo(51, -24); g.moveTo(51, -32); g.lineTo(43, -24); g.stroke();
   } else {
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(47, -28, 5.5, 0, TAU); g.fill();
-    const pr = v > 0.65 ? 1.6 : 3; g.fillStyle = (T.id === 'black') ? '#c0201a' : col.pupil;
+    g.fillStyle = Scene.R > 0.5 ? '#120000' : '#fff'; g.beginPath(); g.arc(47, -28, 5.5, 0, TAU); g.fill();
+    const pr = Scene.R > 0.5 ? 3.4 : v > 0.65 ? 1.6 : 3; g.fillStyle = (T.id === 'black' || Scene.R > 0.5) ? '#ff2a14' : col.pupil;
     g.beginPath(); g.arc(48.5 + (d.stare ? -1.5 : 0), -28, pr, 0, TAU); g.fill();
   }
   // asa da frente
@@ -1186,18 +1270,19 @@ let FONT = 'sans-serif';
 const G = {
   state: 'boot', diff: 'normal', score: 0, lives: 3, ammo: 6, reloading: false, reloadT: 0, cooldown: 0,
   streak: 0, bestStreak: 0, mult: 1, shots: 0, hits: 0, misses: 0, escaped: 0, ducks: [], spawnT: 1, elapsed: 0, heat: 0, speedMul: 1,
-  tension: 0, vis: 0, jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false,
-  aimX: 0, aimY: 0, gunAng: -Math.PI / 2, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, nextGlitch: 10, uid: 0, hurtT: 0, menuDucks: []
+  level: 0, inner: 0, red: 0, vis: 0, jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false,
+  aimX: 0, aimY: 0, gunAng: -Math.PI / 2, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, uid: 0, hurtT: 0, menuDucks: []
 };
 const diffCfg = () => CONFIG.difficulties[G.diff] || CONFIG.difficulties.normal;
 
 function resetGame(){
   Object.assign(G, { score: 0, lives: CONFIG.lives, ammo: CONFIG.magazine, reloading: false, reloadT: 0, cooldown: 0, streak: 0, bestStreak: 0, mult: 1,
-    shots: 0, hits: 0, misses: 0, escaped: 0, ducks: [], spawnT: 1.0, elapsed: 0, heat: 0, speedMul: 1, tension: CONFIG.tension.min, vis: 0,
-    jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false, beatRecord: false, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, nextGlitch: rand(14, 22), hurtT: 0,
+    shots: 0, hits: 0, misses: 0, escaped: 0, ducks: [], spawnT: 1.0, elapsed: 0, heat: 0, speedMul: 1, level: 0, inner: 0, red: 0, vis: 0,
+    jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false, beatRecord: false, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, hurtT: 0,
     goldens: 0, achRun: [], achCoins: 0, tutorial: null });
   parts.length = 0; popups.length = 0;
   G.aimX = W * 0.5; G.aimY = H * 0.35;
+  Scene.R = 0; Scene.ripples = []; Scene.shadow = null; Anom.reset(); Bg.reset(); SND.setLevel(0);
 }
 
 /* ------------------------ INÍCIO DE PARTIDA ------------------------ */
@@ -1319,6 +1404,7 @@ function updateDuck(d, dt){
   d.flap += dt * T.flap * (Math.sin(d.heading) < -0.3 ? 1.3 : 1);
   if (d.state === 'flying' && !d.entered && isInside(d)) d.entered = true;
   d.stare = G.vis > 0.8 && Math.sin(d.t * 0.9 + d.ph) > 0.92;
+  if (G.level >= 5){ d.trailT = (d.trailT || 0) + dt; if (d.trailT > 0.05){ d.trailT = 0; (d.trail || (d.trail = [])).unshift([d.x, d.y]); if (d.trail.length > 3) d.trail.pop(); } }
   d.quackT -= dt; if (d.quackT <= 0){ d.quackT = rand(3, 7); if (Math.random() < 0.35) SND.quack(T.id === 'goose' ? 0.65 : T.size < 0.8 ? 1.25 : 1, G.vis); }
   if (!d.entered && d.t > 20){ d.state = 'gone'; return; } // segurança: nunca entrou na tela
   // escape: pato que saiu completamente da tela sem ser atingido
@@ -1333,8 +1419,9 @@ function onEscape(d){
   SND.escape(); HUD.lives(true);
   const px = clamp(d.x, W * 0.08, W * 0.92), py = clamp(d.y, H * 0.12, H * 0.6);
   popups.push({ x: px, y: py, text: 'ESCAPOU!', c: '#ff6b5e', life: 0.9 });
-  G.hurtT = 0.35 * S().fx;
-  if (G.lives <= 0) endGame('lives');
+  G.hurtT = 0.35 * FX.flash();
+  Tension.levelUp();                                     // cada escape sobe exatamente um nível; o 7º inicia o colapso
+  if (G.state === 'playing' && G.lives <= 0) endGame('lives');
 }
 
 function findTarget(x, y){
@@ -1350,10 +1437,6 @@ function findTarget(x, y){
   return best;
 }
 
-function addTension(amount){
-  const T = CONFIG.tension;
-  G.tension = clamp(G.tension + amount * (1 + rand(-T.jitter, T.jitter)), T.min, T.max);
-}
 
 /* ------------------------ DISPAROS E COLISÕES ------------------------ */
 function fire(){
@@ -1361,11 +1444,10 @@ function fire(){
   if (G.reloading || G.cooldown > 0) return;
   if (G.ammo <= 0){ SND.empty(); HUD.needReload(true, true); return; }
   G.ammo--; G.shots++; G.cooldown = CONFIG.fireCooldown; G.recoil = 1; G.pumpT = 0.0001;
-  G.flash = 0.12 * S().fx; G.shake = Math.max(G.shake, 6 * S().fx);
+  G.flash = 0.12 * FX.flash(); G.shake = Math.max(G.shake, 6 * FX.shake());
   SND.shot();
   const tip = gunTip(); smoke(tip.x, tip.y);
   const d = findTarget(G.aimX, G.aimY);
-  const TC = CONFIG.tension;
   if (d){
     d.scored = true; d.state = 'hit'; d.hitT = 0;
     G.hits++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak);
@@ -1377,19 +1459,18 @@ function fire(){
     feathers(d.x, d.y, d, Q.level === 0 ? 7 : 14); ring(d.x, d.y, '#fff3b0', d.size * 0.5);
     popups.push({ x: d.x, y: d.y - d.size * 0.4, text: '+' + pts + (G.mult > 1 ? '  x' + G.mult : ''), c: d.type.id === 'golden' ? '#ffe14a' : '#ffffff', life: 0.9, big: d.type.id === 'golden' });
     SND.hit(d.type.id === 'golden');
-    if (!G.tutorial) addTension(TC.hit + Math.min(TC.streakBonusCap, TC.streakBonus * G.streak));
+    if (!G.tutorial) Tension.onShot(true);
     HUD.score(); HUD.mult(G.mult !== oldMult);
     if (!G.tutorial) Ach.check('live');
   } else {
     G.misses++; G.streak = 0; G.mult = 1;
     ring(G.aimX, G.aimY, 'rgba(255,255,255,.6)', H * 0.02);
-    if (!G.tutorial) addTension(TC.miss);
+    if (!G.tutorial) Tension.onShot(false);
     HUD.mult(false);
   }
   HUD.ammo();
   if (G.ammo === 0) HUD.needReload(true);
   if (G.tutorial) Tut.onShot(!!d);
-  else if (G.tension >= TC.max && !G.jumpscareUsed) startJumpscare();
 }
 
 function reload(){
@@ -1415,32 +1496,182 @@ function quitToMenu(){
   goMenu();
 }
 
+// Fase 1 (gatilho): chamada uma única vez, pelo 7º escape.
 function startJumpscare(){
   if (G.jumpscareUsed) return; // um único evento por partida
   G.jumpscareUsed = true; G.state = 'jumpscare';
   const mode = S().jumpscare;
-  G.js = { t: 0, mode, shown: false, img: null };
+  G.js = { t: 0, mode, shown: false, img: null, softShown: false };
+  G.reloading = false; G.cooldown = 99;
   Input.reset(); HUD.show(false);
-  SND.tapeStop();
+  SND.collapse(mode);                       // Fase 2: a música para e o lago some
+  Bg.collapse();
+  G.shake = (mode === 'full' ? 16 : 5) * FX.shake();
   if (mode !== 'off'){ try { G.js.img = buildScaryDuck(Math.min(W, 1400), Math.min(H, 800)); } catch (e) { G.js.img = null; } }
 }
 function updateJumpscare(dt){
-  const J = G.js; J.t += dt;
-  const red = S().reduceDistortion;
+  const J = G.js, T = CONFIG.jumpscare; J.t += dt;
+  // transformação vermelha abrupta (mais suave com o susto desativado)
+  G.red = Math.min(1, G.red + dt * (J.mode === 'off' ? 1.4 : 5)); Scene.R = G.red;
+  G.vis = Math.min(1, G.vis + dt * 2); HUD.phase(G.vis);
   if (J.mode === 'full'){
-    if (J.t > 0.6 && J.t < 0.9 && !red) G.glitch = 0.1;
-    if (J.t > 0.9 && !J.shown){ J.shown = true; SND.scream('full'); G.shake = 22 * S().fx; G.flash = 0.6 * S().fx; }
-    if (J.t > 2.9) endGame('tension');
+    // falhas visuais sincronizadas durante o colapso
+    if (FX.dist() > 0.05 && [0.05, 0.42, 0.8].some(x => J.t >= x && J.t - dt < x)) G.glitch = 0.12;
+    if (J.t >= T.appear && !J.shown){ J.shown = true; SND.scream('full'); G.shake = 22 * FX.shake(); G.flash = 0.35 * FX.flash(); } // Fases 4 e 5
   } else if (J.mode === 'reduced'){
-    if (J.t > 0.9 && !J.shown){ J.shown = true; SND.scream('reduced'); }
-    if (J.t > 3.2) endGame('tension');
+    if (J.t >= T.appear && !J.shown){ J.shown = true; SND.scream('reduced'); }
   } else {
-    if (J.t > 0.5 && !J.shown){ J.shown = true; SND.softEnd(); }
-    if (J.t > 3.0) endGame('tension');
+    if (J.t >= T.collapse && !J.softShown){ J.softShown = true; SND.softEnd(); }
   }
-  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 30);
+  if (J.t >= T.end + (J.mode === 'reduced' ? 0.3 : 0)) endGame('tension'); // Fase 6
+  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 22);
   if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 2);
   if (G.glitch > 0) G.glitch -= dt;
+}
+
+/* -------------------------- TENSÃO AMBIENTAL -------------------------- */
+const Tension = {
+  // chamado uma vez por pato escapado (o pato já foi marcado como contado)
+  levelUp(){
+    if (G.tutorial || G.jumpscareUsed) return;
+    G.level = Math.min(CONFIG.tension.collapseAt, G.level + 1); G.inner = 0;
+    SND.setLevel(G.level);
+    if (G.level >= CONFIG.tension.collapseAt){ startJumpscare(); return; }
+    SND.levelCue(G.level); Anom.onLevel(G.level);
+  },
+  // acertos e erros só aumentam a inquietação DENTRO do nível atual
+  onShot(hit){
+    if (G.jumpscareUsed) return; const T = CONFIG.tension;
+    G.inner = Math.min(T.innerCap, G.inner + (hit ? T.innerHit + T.innerStreak * Math.min(G.streak, 10) : T.innerMiss));
+  },
+  target(){ const T = CONFIG.tension; return G.level >= T.collapseAt ? 1 : clamp(T.levelVis[G.level] + G.inner, 0, 0.97); }
+};
+
+// Anomalias: eventos curtos e variados liberados por nível. Nunca o mesmo duas vezes seguidas.
+const ANOMALIES = [
+  { id: 'freezeBg', min: 0, dur: [0.9, 1.6] }, { id: 'shadow', min: 0, dur: [0, 0] },
+  { id: 'ripple', min: 1, dur: [0, 0] }, { id: 'stareBg', min: 1, dur: [1.0, 1.8] }, { id: 'shift', min: 1, dur: [0.12, 0.25], d: 1 }, { id: 'hush', min: 1, dur: [0, 0] },
+  { id: 'lean', min: 2, dur: [0.7, 1.1], d: 1 }, { id: 'reflect', min: 2, dur: [0.6, 1.2], d: 1 },
+  { id: 'edge', min: 3, dur: [0.12, 0.3], d: 1 }, { id: 'drop', min: 3, dur: [0, 0] },
+  { id: 'wave', min: 4, dur: [0.6, 1.4], d: 1 }, { id: 'stall', min: 4, dur: [0.3, 0.8] },
+  { id: 'warp', min: 5, dur: [0.8, 1.5], d: 1 }, { id: 'echo', min: 5, dur: [0.6, 1.2], d: 1 },
+  { id: 'chroma', min: 6, dur: [0.3, 0.7], d: 1 }, { id: 'dip', min: 6, dur: [0, 0] }, { id: 'watcher', min: 6, dur: [1.5, 3] }
+];
+const Anom = {
+  t: {}, total: {}, next: 20, last: null, seed: 0.5,
+  reset(){ this.t = {}; this.total = {}; this.next = rand(18, 30); this.last = null; },
+  on(id){ return (this.t[id] || 0) > 0; },
+  frac(id){ return this.total[id] ? 1 - this.t[id] / this.total[id] : 0; },
+  trigger(id){
+    const a = ANOMALIES.find(x => x.id === id); if (!a) return;
+    const d = rand(a.dur[0], a.dur[1]); this.t[id] = d; this.total[id] = d; this.seed = Math.random();
+    if (id === 'shadow') Scene.startShadow();
+    else if (id === 'ripple'){ Scene.addRipple(); if (G.level >= 2) setTimeout(() => Scene.addRipple(), 400); }
+    else if (id === 'hush') SND.hush();
+    else if (id === 'drop') SND.drop();
+    else if (id === 'dip') SND.dip();
+    else if (id === 'freezeBg') Bg.pick('frozen', d);
+    else if (id === 'stareBg') Bg.pick('stare', d);
+  },
+  onLevel(){ this.next = Math.min(this.next, rand(1.5, 3)); },
+  update(dt, lvl){
+    for (const k in this.t) if (this.t[k] > 0) this.t[k] -= dt;
+    this.next -= dt;
+    if (this.next > 0) return;
+    const distOk = FX.dist() > 0.05;
+    const pool = ANOMALIES.filter(a => a.min <= lvl && a.id !== this.last && (distOk || !a.d));
+    if (pool.length){ const a = pick(pool); this.trigger(a.id); this.last = a.id; }
+    this.next = CONFIG.tension.anomalyEvery[Math.min(lvl, 6)] * rand(0.6, 1.4);
+  }
+};
+
+/* ----------------------- PATOS AO FUNDO (CENÁRIO) ----------------------- */
+// Bandos distantes, decorativos (não podem ser atingidos). Ficam mais estranhos a cada nível.
+const Bg = {
+  ducks: [], next: 2,
+  reset(){ this.ducks = []; this.next = rand(1, 3); },
+  spawnFlock(){
+    const n = 3 + (Math.random() * 3 | 0), dir = Math.random() < 0.5 ? 1 : -1, y = H * rand(0.2, 0.42), sp = W * rand(0.045, 0.075);
+    for (let i = 0; i < n; i++) this.ducks.push({
+      x: (dir > 0 ? -H * 0.05 : W + H * 0.05) - dir * i * H * 0.045, y: y + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * H * 0.022,
+      dir, sp: sp * rand(0.95, 1.05), s: H * rand(0.014, 0.02), flap: rand(0, TAU), fs: rand(0.95, 1.05), k: rand(0.6, 1.4), tilt: rand(-1, 1),
+      frozen: 0, stare: 0, acc: 0, trail: [], tt: 0, rot: 0
+    });
+  },
+  // nível 7: silhuetas imóveis em posições impossíveis
+  collapse(){
+    for (const b of this.ducks){ b.frozen = 999; b.stare = 999; }
+    for (let i = 0; i < 6; i++) this.ducks.push({ x: W * rand(0.12, 0.88), y: H * rand(0.12, 0.48), dir: Math.random() < 0.5 ? 1 : -1, sp: 0, s: H * rand(0.018, 0.03), flap: 1, fs: 1, k: rand(1, 1.6), tilt: rand(-1.5, 1.5), frozen: 999, stare: 999, acc: 0, trail: [], tt: 0, rot: rand(-Math.PI, Math.PI) });
+  },
+  update(dt, lvl){
+    this.next -= dt;
+    if (this.next <= 0 && this.ducks.length < 10){ this.spawnFlock(); this.next = rand(6, 12); }
+    const desync = lvl >= 2 ? 0.14 * lvl : 0.02;
+    for (const b of this.ducks){
+      if (b.frozen > 0){ b.frozen -= dt; continue; }
+      if (b.stare > 0) b.stare -= dt;
+      b.flap += dt * 9 * b.fs * (1 + desync * Math.sin(b.k * 7 + b.flap * 0.13)); // batidas dessincronizadas
+      if (lvl >= 5){ // movimentos bruscos e pouco naturais
+        b.acc += dt; if (b.acc > 0.11){ b.x += b.dir * b.sp * b.acc * rand(0.5, 1.7); b.y += rand(-1, 1) * H * 0.004 * (lvl - 4); b.acc = 0; }
+        b.tt += dt; if (b.tt > 0.06){ b.tt = 0; b.trail.unshift([b.x, b.y]); if (b.trail.length > 3) b.trail.pop(); }
+      } else { b.x += b.dir * b.sp * dt; b.y += Math.sin(b.flap * 0.15) * H * 0.0006; b.trail.length = 0; }
+    }
+    this.ducks = this.ducks.filter(b => b.x > -W * 0.15 && b.x < W * 1.15);
+  },
+  pick(kind, dur){ const live = this.ducks.filter(b => b.x > W * 0.1 && b.x < W * 0.9 && b.frozen <= 0); if (live.length) pick(live)[kind] = dur; },
+  draw(g, v, lvl, R){
+    const col = rgb(mixc(pc('treeFar', v), [20, 10, 14], 0.35));
+    const m = Math.min(1, clamp((lvl - 3) / 4, 0, 1) + R);
+    const time = G.js ? G.js.t : Scene.time;
+    for (const b of this.ducks){
+      let a = 1;
+      if (R > 0) a = Math.sin(time * 9 + b.k * 13) > -0.3 ? 1 : 0.15; // aparecem e somem na névoa
+      if (b.trail.length && Q.level > 0){ for (let i = 0; i < b.trail.length; i++){ g.globalAlpha = 0.2 / (i + 1) * a; drawBgDuck(g, b, b.trail[i][0], b.trail[i][1], col, m, lvl, R); } }
+      g.globalAlpha = a; drawBgDuck(g, b, b.x, b.y, col, m, lvl, R);
+    }
+    g.globalAlpha = 1;
+    // observadores imóveis em pé sobre o lago (nível 6 em eventos, sempre no colapso)
+    const wa = R > 0 ? R : Anom.on('watcher') ? Math.sin(Anom.frac('watcher') * Math.PI) : 0;
+    if (wa > 0.01){
+      const n = R > 0 ? 3 : 1;
+      for (let i = 0; i < n; i++){
+        const w = L.watchers[i], h = H * (0.06 + i * 0.012);
+        g.globalAlpha = wa * 0.9; g.fillStyle = rgb(mixc(pc('treeNear', v), [8, 0, 2], 0.6));
+        g.beginPath(); g.ellipse(w.x, w.y - h * 0.3, h * 0.13, h * 0.32, 0, 0, TAU); g.fill();
+        g.lineWidth = h * 0.08; g.strokeStyle = g.fillStyle; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(w.x, w.y - h * 0.55); g.quadraticCurveTo(w.x + h * 0.15, w.y - h * 0.85, w.x - h * 0.05, w.y - h * 1.05); g.stroke();
+        g.beginPath(); g.arc(w.x - h * 0.05, w.y - h * 1.08, h * 0.1, 0, TAU); g.fill();
+        g.fillStyle = 'rgba(255,50,30,0.95)'; g.beginPath(); g.arc(w.x - h * 0.09, w.y - h * 1.1, h * 0.022, 0, TAU); g.arc(w.x - h * 0.01, w.y - h * 1.1, h * 0.022, 0, TAU); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+  }
+};
+function drawBgDuck(g, b, x, y, col, m, lvl, R){
+  const s = b.s * (1 + m * 0.25);
+  g.save(); g.translate(x, y); g.scale(b.dir, 1); if (b.rot) g.rotate(b.rot);
+  const still = b.frozen > 0 || R > 0;
+  const fl = still ? 0.55 : Math.sin(b.flap);
+  g.fillStyle = col; g.strokeStyle = col;
+  g.save(); g.scale(1, fl * (1 + m * 0.5 * b.tilt)); g.beginPath(); g.moveTo(s * 0.3, 0); g.lineTo(-s * 0.5, -s * 1.3); g.lineTo(-s * 0.2, 0); g.fill(); g.restore();
+  g.beginPath(); g.ellipse(0, 0, s, s * 0.38, 0, 0, TAU); g.fill();
+  // pescoço alonga e curva de forma incomum conforme o nível
+  const nl = s * (0.55 + m * 1.1 * b.k), ang = -0.4 - m * b.tilt * 1.3;
+  const nx = s * 0.8 + Math.cos(ang) * nl, ny = Math.sin(ang) * nl;
+  g.lineWidth = s * 0.26; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(s * 0.7, -s * 0.05); g.quadraticCurveTo(s * 0.9 + m * s * 0.7 * b.tilt, -nl * 0.3, nx, ny); g.stroke();
+  const hr = s * 0.3; g.beginPath(); g.arc(nx, ny, hr, 0, TAU); g.fill();
+  const stare = b.stare > 0 || R > 0;
+  if (!stare){ g.beginPath(); g.moveTo(nx + hr * 0.7, ny - hr * 0.2); g.lineTo(nx + hr * 1.9, ny + hr * 0.1 * (1 + m * 3)); g.lineTo(nx + hr * 0.7, ny + hr * 0.4); g.fill(); }
+  g.save(); g.scale(1, fl); g.beginPath(); g.moveTo(s * 0.4, 0); g.lineTo(-s * 0.3, -s * 1.4 * (1 + m * 0.3)); g.lineTo(0, 0); g.fill(); g.restore();
+  if (stare || lvl >= 6){
+    g.fillStyle = R > 0 ? 'rgba(255,50,30,.95)' : lvl >= 6 ? 'rgba(255,70,50,.8)' : 'rgba(255,245,230,.95)';
+    g.beginPath();
+    if (stare){ g.arc(nx - hr * 0.38, ny - hr * 0.1, hr * 0.24, 0, TAU); g.arc(nx + hr * 0.38, ny - hr * 0.1, hr * 0.24, 0, TAU); } // olhando para o jogador
+    else g.arc(nx + hr * 0.35, ny - hr * 0.2, hr * 0.2, 0, TAU);
+    g.fill();
+  }
+  g.restore();
 }
 
 // Imagem original do "pato assustador" desenhada por código (sem gore)
@@ -1448,7 +1679,7 @@ function buildScaryDuck(w, h){
   const c = mkCanvas(w, h), g = c.getContext('2d'), r = mulberry32(666);
   g.fillStyle = '#050203'; g.fillRect(0, 0, w, h);
   const cx = w / 2, cy = h * 0.54, R = Math.min(h * 0.5, w * 0.36);
-  let rg = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.8); rg.addColorStop(0, 'rgba(110,8,14,.75)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, w, h);
+  let rg = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.8); rg.addColorStop(0, 'rgba(170,10,14,.9)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, w, h);
   // penas eriçadas
   g.fillStyle = '#9d9a8c'; g.beginPath();
   for (let i = 0; i <= 64; i++){ const a = i / 64 * TAU, rad = R * (1.02 + (i % 2 ? 0.12 + r() * 0.18 : 0)); const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad * 0.95; i ? g.lineTo(x, y) : g.moveTo(x, y); }
@@ -1477,6 +1708,11 @@ function buildScaryDuck(w, h){
   g.fillStyle = '#6a370c'; g.beginPath(); g.moveTo(cx - bw * 0.72, by + R * 0.48); g.quadraticCurveTo(cx, by + R * 0.84, cx + bw * 0.72, by + R * 0.48); g.quadraticCurveTo(cx, by + R * 0.7, cx - bw * 0.72, by + R * 0.48); g.fill();
   g.fillStyle = '#e9e4cf';
   for (let i = 0; i < 10; i++){ const t = (i + 0.5) / 10, x = lerp(cx - bw * 0.62, cx + bw * 0.62, t), y = by + R * 0.5 + Math.sin(t * Math.PI) * R * 0.17; g.beginPath(); g.moveTo(x - R * 0.03, y); g.lineTo(x, y - R * (0.06 + 0.03 * r())); g.lineTo(x + R * 0.03, y); g.fill(); }
+  // iluminação vermelha e preta
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgb(255,120,110)'; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'source-over';
+  const lg = g.createLinearGradient(0, 0, 0, h); lg.addColorStop(0, 'rgba(0,0,0,.55)'); lg.addColorStop(0.45, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,.6)');
+  g.fillStyle = lg; g.fillRect(0, 0, w, h);
   // linhas de varredura
   g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);
   return c;
@@ -1541,19 +1777,14 @@ function updatePlaying(dt){
   G.ducks = G.ducks.filter(d => d.state !== 'gone' && d.state !== 'escaped');
   updateParts(dt);
   if (!(G.tutorial && G.tutorial.ownVis)) updateVis(dt);
-  // falhas visuais ocasionais (mais frequentes com o pavor)
-  const red = S().reduceDistortion;
-  G.nextGlitch -= dt;
-  if (G.nextGlitch <= 0){
-    if (G.vis > 0.35 && !red && S().fx > 0.05 && !G.tutorial) G.glitch = rand(0.06, 0.14 + G.vis * 0.1);
-    G.nextGlitch = lerp(16, 3.5, clamp((G.vis - 0.35) / 0.6, 0, 1)) * rand(0.7, 1.3);
-  }
+  if (!G.tutorial) Anom.update(dt, G.level);
+  Bg.update(dt, G.level);
   if (G.glitch > 0) G.glitch -= dt;
   commonFx(dt);
-  Scene.update(dt, G.vis, true);
+  Scene.update(Anom.on('stall') ? 0 : dt, G.vis, true); // nível 4+: animações do ambiente param por instantes
 }
 function updateVis(dt){
-  const target = Math.pow((G.tension - CONFIG.tension.min) / (CONFIG.tension.max - CONFIG.tension.min), 1.1);
+  const target = Tension.target();
   G.vis += (target - G.vis) * Math.min(1, dt * CONFIG.tension.visualEase);
   HUD.phase(G.vis);
 }
@@ -1569,7 +1800,7 @@ function commonFx(dt){
 
 // patos decorativos no menu (não interagem)
 function updateMenu(dt){
-  Scene.update(dt, 0, false);
+  Scene.update(dt, 0, false); Bg.update(dt, 0);
   if (G.menuDucks.length < 2 && Math.random() < dt * 0.4){
     const dir = Math.random() < 0.5 ? 1 : -1, t = pick(CONFIG.duckTypes.slice(0, 3));
     G.menuDucks.push({ type: t, size: H * 0.09 * t.size, x: dir > 0 ? -60 : W + 60, y: H * rand(0.12, 0.4), heading: dir > 0 ? rand(-0.15, 0.1) : Math.PI + rand(-0.1, 0.15), facing: dir, flap: 0, t: 0, ph: rand(0, 6), state: 'flying' });
@@ -1657,7 +1888,7 @@ const Tut = {
     { id: 'empty',   title: 'Seis disparos',         text: 'A espingarda tem 6 cartuchos (canto inferior esquerdo). Atire até esvaziar.' },
     { id: 'reload',  title: 'Recarregar',            text: 'Toque no botão RECARGA. Enquanto recarrega, não é possível atirar.' },
     { id: 'escape',  title: 'Vidas',                 text: 'Deixe este pato fugir. Cada pato que escapa custa 1 vida; sem vidas, a partida acaba.' },
-    { id: 'tension', title: 'O lago muda',           text: 'Cada tiro, certo ou errado, deixa o ambiente mais tenso. Não existe barra nem aviso: observe a luz, as cores e os sons.', btn: 'Continuar' },
+    { id: 'tension', title: 'O lago muda',           text: 'Quanto mais patos fogem, mais o lago muda, e nada volta ao normal. Não existe barra nem aviso: observe a luz, as cores, os patos ao fundo e os sons.', btn: 'Continuar' },
     { id: 'pause',   title: 'Pausa e configurações', text: 'Toque no botão de pausa (canto superior direito). Lá ficam Continuar, Configurações e Menu. Depois, continue.' },
     { id: 'done',    title: 'Pronto para caçar!',    text: 'Você aprendeu o básico. Escolha a dificuldade no menu e boa caçada.', btn: 'Concluir' }
   ],
@@ -1724,7 +1955,7 @@ const Tut = {
     if (this.cur() !== 'escape' || G.tutorial.escaped) return;
     G.tutorial.escaped = true;
     G.escaped++; G.lives = Math.max(1, G.lives - 1); // nunca termina a partida no tutorial
-    SND.escape(); HUD.lives(true); G.hurtT = 0.35 * S().fx;
+    SND.escape(); HUD.lives(true); G.hurtT = 0.35 * FX.flash();
     popups.push({ x: clamp(d.x, W * 0.08, W * 0.92), y: clamp(d.y, H * 0.12, H * 0.6), text: 'ESCAPOU! -1 vida', c: '#ff6b5e', life: 1.2 });
     this.status('Viu? Uma vida a menos.'); this.later(1.6);
   },
@@ -1744,18 +1975,40 @@ const Tut = {
 
 /* ----------------------------- RENDER ----------------------------- */
 function render(){
-  const g = ctx, fxk = S().fx;
-  const v = (G.state === 'menu' || G.state === 'boot') ? 0 : G.vis;
-  Scene.ensure(v);
+  const g = ctx, fxk = S().fx, dk = FX.dist();
+  const menu = G.state === 'menu' || G.state === 'boot';
+  const v = menu ? 0 : G.vis, lvl = menu ? 0 : G.level, R = menu ? 0 : G.red;
+  Scene.R = R; Scene.ensure(v);
+  const jt = G.js ? G.js.t : 0, JT = CONFIG.jumpscare;
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
   g.save();
-  if (G.shake > 0){ const s = G.shake * fxk; g.translate(rand(-s, s), rand(-s, s)); }
-  Scene.drawBack(g, v, fxk);
+  if (G.shake > 0){ const s = G.shake; g.translate(rand(-s, s), rand(-s, s)); }
+  // nível 5+: pequenas oscilações de perspectiva
+  const warp = ((lvl >= 5 ? 0.004 * (lvl - 4) : 0) + (Anom.on('warp') ? 0.014 : 0) + R * 0.02) * dk;
+  g.save();
+  if (warp > 0.0005){ const t = Scene.time + jt * 3, sc = 1 + warp * Math.sin(t * 0.9); g.translate(W / 2, H * 0.45); g.rotate(warp * 0.35 * Math.sin(t * 0.6)); g.scale(sc, 1 + warp * Math.cos(t * 0.7)); g.translate(-W / 2, -H * 0.45); }
+  Scene.drawBack(g, v, lvl, R);
   const inGame = G.state === 'playing' || G.state === 'paused' || G.state === 'jumpscare' || G.state === 'gameover';
   const ducks = inGame ? G.ducks : G.menuDucks;
+  // nível 5+: rastros e ecos dos patos
+  if (inGame && Q.level > 0 && dk > 0.05){
+    for (const d of ducks){
+      if (d.state === 'gone' || d.state === 'escaped' || !d.trail) continue;
+      const tr = d.trail; if (lvl < 5 && !Anom.on('echo')) continue;
+      for (let i = tr.length - 1; i >= 0; i--){ g.globalAlpha = 0.16 / (i + 1); const ox = d.x, oy = d.y; d.x = tr[i][0]; d.y = tr[i][1]; drawDuck(g, d, v); d.x = ox; d.y = oy; }
+      if (Anom.on('echo')){ g.globalAlpha = 0.22; const ox = d.x; d.x += H * 0.05 * (Anom.seed - 0.5) * 2; drawDuck(g, d, v); d.x = ox; }
+      g.globalAlpha = 1;
+    }
+  }
   for (const d of ducks) if (d.state !== 'gone' && d.state !== 'escaped') drawDuck(g, d, v);
   Scene.drawFront(g, v);
   if (Q.level > 0 || v > 0.3) Scene.drawFog(g, v);
+  g.restore();
+  // nível 4+: distorção em ondas do cenário (e o horizonte se deformando no colapso)
+  let wave = Anom.on('wave') ? H * 0.012 * Math.sin(Anom.frac('wave') * Math.PI) : 0;
+  if (R > 0) wave = Math.max(wave, H * (0.006 + (G.state === 'jumpscare' && jt < JT.collapse ? 0.03 * (1 - jt / JT.collapse) : 0)));
+  wave *= dk;
+  if (wave > 0.4){ g.restore(); waveDistort(g, wave, Scene.time + jt); g.save(); }
   if (inGame) drawParts(g);
   // arma
   if (G.state === 'playing' || G.state === 'paused' || G.state === 'jumpscare'){
@@ -1775,21 +2028,45 @@ function render(){
     }
   }
   g.restore();
-  // sobreposições de atmosfera
-  if (v > 0.02){ g.fillStyle = `rgba(10,2,8,${0.38 * Math.pow(v, 1.4)})`; g.fillRect(0, 0, W, H); }
-  const beat = v > 0.6 ? Math.max(0, Math.sin(Scene.time * (2.4 + v * 1.6))) ** 8 * 0.12 * (v - 0.6) * 2.5 * fxk : 0;
-  g.globalAlpha = clamp(0.18 + 0.62 * v + beat, 0, 0.95); g.drawImage(Scene.vign, -W * 0.08, -H * 0.12, W * 1.16, H * 1.24); g.globalAlpha = 1;
+  // ---- sobreposições de atmosfera ----
+  const fk = FX.flash();
+  let dark = 0.38 * Math.pow(v, 1.4);
+  if (lvl >= 5 && R === 0) dark += 0.07 * Math.sin(Scene.time * 0.7) * fk * (lvl - 4) / 2; // a luz muda em ondas lentas
+  if (dark > 0.01){ g.fillStyle = `rgba(10,2,8,${clamp(dark, 0, 0.6)})`; g.fillRect(0, 0, W, H); }
+  if (R > 0){ // colapso: a imagem inteira vira carmesim e pulsa entre vermelho escuro e preto
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = rgb(mixc([255, 255, 255], [255, 70, 60], R)); g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+    g.fillStyle = `rgba(0,0,0,${R * (0.12 + 0.12 * Math.sin((Scene.time + jt) * 5) * fk)})`; g.fillRect(0, 0, W, H);
+  }
+  const beat = v > 0.6 ? Math.max(0, Math.sin(Scene.time * (2.4 + v * 1.6))) ** 8 * 0.12 * (v - 0.6) * 2.5 * fk : 0;
+  g.globalAlpha = clamp(0.18 + 0.62 * v + beat + R * 0.15, 0, 0.97); g.drawImage(Scene.vign, -W * 0.08, -H * 0.12, W * 1.16, H * 1.24); g.globalAlpha = 1;
+  // nível 6+: aberração cromática controlada
+  const chroma = ((lvl >= 6 ? 0.06 : 0) + (Anom.on('chroma') ? 0.14 : 0) + R * 0.12) * dk;
+  if (chroma > 0.01 && Q.level > 0){ g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = chroma; g.globalCompositeOperation = 'screen'; g.drawImage(cvs, 4 * DPR, 0); g.drawImage(cvs, -3 * DPR, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.setTransform(DPR, 0, 0, DPR, 0, 0); }
   if (G.hurtT > 0){ g.fillStyle = `rgba(200,20,20,${G.hurtT * 0.5})`; g.fillRect(0, 0, W, H); }
-  if (G.glitch > 0) drawGlitch(g, v);
+  if (Anom.on('edge') && G.state === 'playing') drawGlitch(g, v, true);
+  if (G.glitch > 0) drawGlitch(g, v, false);
   if (G.flash > 0 && G.state !== 'jumpscare'){ g.fillStyle = `rgba(255,245,220,${G.flash})`; g.fillRect(0, 0, W, H); }
   if (G.state === 'jumpscare') drawJumpscare(g);
   if (G.state === 'playing') drawCrosshair(g, v);
 }
 
-function drawGlitch(g, v){
-  const k = S().fx * (S().reduceDistortion ? 0.3 : 1); if (k <= 0.02) return;
+function waveDistort(g, amp, t){
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const n = Q.level === 0 ? 12 : 24, cw = cvs.width, ch = cvs.height, h = Math.ceil(ch / n);
+  for (let i = 0; i < n; i++){ const y = i * h, dx = Math.sin(t * 6 + i * 0.7) * amp * DPR; if (Math.abs(dx) < 0.5) continue; try { g.drawImage(cvs, 0, y, cw, h, dx, y, cw, h); } catch (e) {} }
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+// edgeOnly: falhas só nas bordas da tela (nível 3+), sem atrapalhar a mira no centro
+function drawGlitch(g, v, edgeOnly){
+  const k = FX.dist(); if (k <= 0.02) return;
   g.setTransform(1, 0, 0, 1, 0, 0);
   const n = Q.level === 0 ? 3 : 6, cw = cvs.width, ch = cvs.height;
+  if (edgeOnly){
+    const ew = cw * 0.12;
+    for (let i = 0; i < n; i++){ const y = Math.random() * ch, h = ch * rand(0.02, 0.08), sx = Math.random() < 0.5 ? 0 : cw - ew, dx = rand(-1, 1) * ew * 0.25 * k; try { g.drawImage(cvs, sx, y, ew, h, sx + dx, y, ew, h); } catch (e) {} }
+    g.setTransform(DPR, 0, 0, DPR, 0, 0); return;
+  }
   for (let i = 0; i < n; i++){ const y = Math.random() * ch, h = ch * rand(0.01, 0.06), dx = rand(-1, 1) * cw * 0.04 * k; try { g.drawImage(cvs, 0, y, cw, h, dx, y, cw, h); } catch (e) {} }
   g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,0,40' : '0,255,220'},${0.06 * k})`; g.fillRect(0, Math.random() * ch, cw, ch * 0.08);
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -1808,30 +2085,42 @@ function drawCrosshair(g, v){
   g.fillStyle = col; g.beginPath(); g.arc(x, y, 2.4, 0, TAU); g.fill();
 }
 
+// Fragmentos que atravessam a cena durante o colapso (determinísticos, sem custo de partículas)
+function drawShards(g, t){
+  const n = Q.level === 0 ? 10 : 22, r = mulberry32(77);
+  for (let i = 0; i < n; i++){
+    const sp = W * (0.3 + r()), x = ((r() * W + t * sp * (r() < 0.5 ? 1 : -1)) % (W * 1.2) + W * 1.2) % (W * 1.2) - W * 0.1;
+    const y = r() * H + Math.sin(t * 7 + i) * H * 0.03, sz = H * (0.008 + r() * 0.02), rot = t * (r() * 8 - 4);
+    g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = r() < 0.5 ? 'rgba(10,0,0,.85)' : 'rgba(200,20,20,.75)';
+    g.beginPath(); g.moveTo(0, -sz); g.lineTo(sz * 0.6, sz * 0.7); g.lineTo(-sz * 0.7, sz * 0.4); g.closePath(); g.fill(); g.restore();
+  }
+}
 function drawJumpscare(g){
   const J = G.js; if (!J) return;
-  const t = J.t, fxk = S().fx;
+  const t = J.t, T = CONFIG.jumpscare, sk = FX.shake();
+  if (t < T.appear && J.mode !== 'off') drawShards(g, t);
+  // Fase 3: silêncio e expectativa — o cenário escurece levemente
+  if (t > T.collapse && t < T.appear){ g.fillStyle = `rgba(0,0,0,${clamp((t - T.collapse) / (T.appear - T.collapse), 0, 1) * 0.35})`; g.fillRect(0, 0, W, H); }
   if (J.mode === 'full'){
-    g.fillStyle = `rgba(0,0,0,${clamp(t / 0.9, 0, 1) * 0.55})`; g.fillRect(0, 0, W, H);
-    if (t > 0.9 && J.img){
-      const k = t - 0.9, zoom = 1.05 + k * 0.12 + (k < 0.08 ? (0.08 - k) * 3 : 0);
-      const sh = (k < 0.6 ? 14 : 5) * fxk, ox = rand(-sh, sh), oy = rand(-sh, sh);
+    if (t >= T.appear && J.img){ // Fase 4: aparição súbita em tela cheia
+      const k = t - T.appear, zoom = 1.05 + k * 0.12 + (k < 0.08 ? (0.08 - k) * 3 : 0);
+      const sh = (k < 0.6 ? 14 : 5) * sk, ox = rand(-sh, sh), oy = rand(-sh, sh);
       const iw = W * zoom, ih = H * zoom;
       g.drawImage(J.img, (W - iw) / 2 + ox, (H - ih) / 2 + oy, iw, ih);
-      if (!S().reduceDistortion && Q.level > 0){ g.globalAlpha = 0.25 * fxk; g.globalCompositeOperation = 'lighter'; g.drawImage(J.img, (W - iw) / 2 + ox + 8 * fxk, (H - ih) / 2 + oy, iw, ih); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; }
-      if (G.flash > 0){ g.fillStyle = `rgba(255,255,255,${G.flash * 0.6})`; g.fillRect(0, 0, W, H); }
+      const dk = FX.dist();
+      if (dk > 0.3 && Q.level > 0){ g.globalAlpha = 0.25 * dk; g.globalCompositeOperation = 'lighter'; g.drawImage(J.img, (W - iw) / 2 + ox + 8 * dk, (H - ih) / 2 + oy, iw, ih); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; }
+      if (G.flash > 0){ g.fillStyle = `rgba(255,40,30,${G.flash * 0.6})`; g.fillRect(0, 0, W, H); }
     }
-    if (t > 2.35){ g.fillStyle = `rgba(0,0,0,${clamp((t - 2.35) / 0.5, 0, 1)})`; g.fillRect(0, 0, W, H); }
+    if (t > T.fadeOut){ g.fillStyle = `rgba(0,0,0,${clamp((t - T.fadeOut) / (T.end - T.fadeOut), 0, 1)})`; g.fillRect(0, 0, W, H); }
   } else if (J.mode === 'reduced'){
-    g.fillStyle = `rgba(0,0,0,${clamp(t / 0.9, 0, 1) * 0.6})`; g.fillRect(0, 0, W, H);
-    if (t > 0.9 && J.img){
-      const a = clamp((t - 0.9) / 0.7, 0, 1) * clamp((3.0 - t) / 0.5, 0, 1);
+    if (t >= T.appear && J.img){
+      const a = clamp((t - T.appear) / 0.7, 0, 1) * clamp((T.end + 0.3 - t) / 0.5, 0, 1);
       g.globalAlpha = a * 0.85; const iw = W * 0.7, ih = H * 0.7; g.drawImage(J.img, (W - iw) / 2, (H - ih) / 2, iw, ih); g.globalAlpha = 1;
     }
   } else {
-    g.fillStyle = `rgba(4,6,12,${clamp(t / 2.2, 0, 1)})`; g.fillRect(0, 0, W, H);
-    const a = clamp((t - 0.7) / 0.6, 0, 1) * clamp((2.9 - t) / 0.5, 0, 1);
-    if (a > 0){ g.globalAlpha = a; g.fillStyle = '#e8e0d8'; g.textAlign = 'center'; g.font = `700 ${Math.round(H * 0.055)}px ${FONT}`; g.fillText('O lago ficou em silêncio…', W / 2, H / 2); g.globalAlpha = 1; }
+    g.fillStyle = `rgba(4,0,2,${clamp((t - 0.6) / 2.2, 0, 1)})`; g.fillRect(0, 0, W, H);
+    const a = clamp((t - T.collapse) / 0.6, 0, 1) * clamp((T.end - 0.1 - t) / 0.5, 0, 1);
+    if (a > 0){ g.globalAlpha = a; g.fillStyle = '#e8d8d0'; g.textAlign = 'center'; g.font = `700 ${Math.round(H * 0.055)}px ${FONT}`; g.fillText('O lago ficou em silêncio…', W / 2, H / 2); g.globalAlpha = 1; }
   }
 }
 
@@ -1921,7 +2210,7 @@ const HUD = {
   ammo(){ const s = $('ammo').children; for (let i = 0; i < s.length; i++) s[i].classList.toggle('spent', i >= G.ammo); },
   reload(p){ const c = document.querySelector('#reloadBtn .ring circle'); c.style.strokeDashoffset = String(289 * (1 - clamp(p, 0, 1))); },
   needReload(on, shake){ const b = $('reloadBtn'); b.classList.toggle('need', on); },
-  phase(v){ const ph = v > 0.62 ? 2 : v > 0.3 ? 1 : 0; if (ph !== this.phaseV){ this.phaseV = ph; $('hud').dataset.phase = ph; } },
+  phase(v){ const ph = G.red > 0 ? 3 : v > 0.82 ? 2 : v > 0.4 ? 1 : 0; if (ph !== this.phaseV){ this.phaseV = ph; $('hud').dataset.phase = ph; } },
   hint(text, secs){ const h = $('hint'); h.textContent = text; h.classList.add('show'); clearTimeout(this.hintT); this.hintT = setTimeout(() => h.classList.remove('show'), secs * 1000); }
 };
 
@@ -2053,7 +2342,7 @@ const UI = {
 
 function goMenu(){
   G.tutorial = null; $('tutBox').classList.remove('show');
-  G.state = 'menu'; G.vis = 0; G.ducks = []; G.menuDucks = []; G.glitch = 0; G.shake = 0; G.flash = 0; G.hurtT = 0;
+  G.state = 'menu'; G.vis = 0; G.level = 0; G.red = 0; Scene.R = 0; G.js = null; Bg.reset(); Anom.reset(); SND.setLevel(0); G.ducks = []; G.menuDucks = []; G.glitch = 0; G.shake = 0; G.flash = 0; G.hurtT = 0;
   HUD.show(false); Input.reset(); UI.refreshMenu(); UI.show('menu');
   if (SND.ctx){ SND.musicOn = true; SND.startMusic(); }
 }
@@ -2091,7 +2380,7 @@ function frame(ts){
   try {
     switch (G.state){
       case 'playing': updatePlaying(dt); break;
-      case 'jumpscare': updateJumpscare(dt); break;
+      case 'jumpscare': updateJumpscare(Math.min(0.1, Math.max(0, dtRaw))); break; // segue o tempo real, mesmo em aparelhos lentos
       case 'menu': updateMenu(dt); commonFx(dt); break;
       case 'paused': break; // simulação congelada
       case 'gameover': Scene.update(dt * 0.4, G.vis, false); updateParts(dt); commonFx(dt); break;
@@ -2137,7 +2426,9 @@ function boot(){
 }
 window.addEventListener('error', e => { if (G.state === 'boot') showError('Erro ao iniciar: ' + e.message); });
 // ganchos para testes automatizados
-window.__pato = { G, CONFIG, Store, startGame, startTutorial, Tut, Ach, Shop, SKINS, fire, reload, pauseGame, resumeGame, startJumpscare, spawnDuck };
+window.__pato = { G, CONFIG, Store, startGame, startTutorial, Tut, Ach, Shop, SKINS, Tension, Anom, Bg,
+  // teste: leva um pato ativo (ou um novo) para fora da tela; o próprio jogo detecta o escape no quadro seguinte
+  forceEscape(){ let d = G.ducks.find(d => !d.scored && !d.counted && ['flying', 'entering', 'escaping'].includes(d.state)); if (!d){ spawnDuck(); d = G.ducks[G.ducks.length - 1]; } d.entered = true; d.state = 'flying'; d.x = -d.r * 4; return d.id; }, fire, reload, pauseGame, resumeGame, startJumpscare, spawnDuck };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
