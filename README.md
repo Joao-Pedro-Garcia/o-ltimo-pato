@@ -4,7 +4,7 @@ Jogo 2D de caça aos patos em primeira pessoa, com terror psicológico progressi
 Tudo em **um único arquivo**: `index.html` (HTML + CSS + JavaScript puro, sem dependências, sem internet).
 
 ## Como jogar
-Abra `index.html` no navegador do celular, na horizontal. Funciona offline.
+Abra `index.html` no navegador do celular, em pé ou deitado. Funciona offline.
 
 - Arraste para mirar · toque para atirar (ou modo "Toque direto" nas configurações)
 - 6 cartuchos, recarga manual · 7 vidas, cada pato que escapa custa 1
