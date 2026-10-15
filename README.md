@@ -9,7 +9,8 @@ Abra `index.html` no navegador do celular, na horizontal. Funciona offline.
 - Arraste para mirar · toque para atirar (ou modo "Toque direto" nas configurações)
 - 6 cartuchos, recarga manual · 3 vidas, cada pato que escapa custa 1
 - Acertos seguidos aumentam o multiplicador (até x5); errar zera
-- Pontos viram moedas para a loja de skins da arma
+- Pontos viram moedas para a loja de skins da arma (algumas skins só saem por conquistas)
+- 14 conquistas e um tutorial interativo (menu → 🎓 Tutorial)
 - Fique atento ao lago…
 
 No computador: mouse mira/atira, `R` recarrega, `P`/`Esc` pausa.

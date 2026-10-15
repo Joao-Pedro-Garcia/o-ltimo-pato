@@ -16,6 +16,7 @@
   --sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{width:100%;height:100%;overflow:hidden;background:#0b1520;color:var(--ui);font-family:var(--font);
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;touch-action:manipulation}
 canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
@@ -152,6 +153,32 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .stat span{font-size:10.5px;opacity:.7;text-transform:uppercase;letter-spacing:.6px}
 .coinsWon{display:flex;justify-content:center;align-items:center;gap:8px;font-weight:900;font-size:clamp(16px,5vh,22px);margin:4px 0}
 
+/* estados de skin, conquistas, aviso e tutorial */
+.skin .st{align-self:center;font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:2px 8px;border-radius:8px}
+.st.eq{background:var(--ok);color:#06280c}.st.own{background:#5d7186;color:#fff}.st.avail{background:var(--accent);color:#2a1a00}.st.lock{background:rgba(255,255,255,.1);color:var(--ui-dim)}
+.skin.locked canvas{filter:grayscale(.85) brightness(.5)}
+.achTag{font-size:11px;color:#c9a8ff;font-weight:700;line-height:1.3}
+.achList{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.ach{display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 10px}
+.ach.done{border-color:rgba(95,209,107,.6);background:rgba(95,209,107,.1)}
+.ach .ico{font-size:22px;line-height:1;filter:grayscale(1);opacity:.45}.ach.done .ico{filter:none;opacity:1}
+.ach b{display:block;font-size:14px}.ach p{font-size:12px;opacity:.75;margin:2px 0}.ach .rw{font-size:11.5px;font-weight:700;color:var(--accent)}
+.ach .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:4px;overflow:hidden}.ach .bar i{display:block;height:100%;background:var(--accent)}
+.ach .bar + span{font-size:10.5px;opacity:.65;font-variant-numeric:tabular-nums}
+#toast{position:fixed;top:calc(8px + var(--sat));left:50%;transform:translate(-50%,-160%);z-index:60;pointer-events:none;background:linear-gradient(#3b2a6b,#24183f);border:2px solid #a77bff;border-radius:14px;padding:7px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.45);transition:transform .35s;max-width:calc(100% - 32px)}
+#toast.show{transform:translate(-50%,0)}
+#toast .ti{font-size:24px}#toast small{display:block;font-size:10px;letter-spacing:1.2px;opacity:.75;text-transform:uppercase}#toast b{font-size:14px}#toast .tr{font-size:12px;color:var(--accent);font-weight:700}
+#tutBox{position:absolute;top:calc(clamp(56px,16vh,78px) + var(--sat));left:50%;transform:translateX(-50%);width:min(520px,calc(100% - 210px));min-width:250px;pointer-events:auto;
+  background:rgba(10,18,28,.84);border:2px solid rgba(255,207,63,.55);border-radius:14px;padding:5px 12px;display:none;gap:2px;flex-direction:column;align-items:center;text-align:center}
+#tutBox.show{display:flex}
+#tutStep{font-size:10.5px;letter-spacing:1.2px;opacity:.7;text-transform:uppercase}
+#tutTitle{font-weight:900;font-size:clamp(14px,4.2vh,18px);color:var(--accent)}
+#tutText{font-size:clamp(12px,3.5vh,14px);line-height:1.3}
+#tutStatus{font-size:12px;font-weight:800;color:#9fe3a8}
+#tutStatus:empty{display:none}
+#tutBtns{display:flex;gap:6px;margin-top:2px}
+#tutBtns .btn{padding:3px 12px;min-height:32px;font-size:13px;border-bottom-width:3px}
+.goAch{text-align:center;font-size:12.5px;color:#c9a8ff;font-weight:700;margin-top:2px}
 /* rotate / error / boot */
 #rotate{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0b1520;text-align:center;padding:24px}
 #rotate .ph{width:64px;height:100px;border:4px solid var(--ui);border-radius:12px;position:relative;animation:rot 2.2s ease-in-out infinite}
@@ -184,7 +211,12 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <div id="ammo"></div>
   </div>
   <div id="hint">Arraste para mirar · Toque para atirar</div>
+  <div id="tutBox" role="dialog" aria-live="polite">
+    <div id="tutStep"></div><div id="tutTitle"></div><div id="tutText"></div><div id="tutStatus"></div>
+    <div id="tutBtns"><button class="btn sec" id="tutSkip">Pular tutorial</button><button class="btn" id="tutNext">Continuar</button></div>
+  </div>
 </div>
+<div id="toast" aria-live="polite"></div>
 
 <!-- MENU -->
 <div id="menu" class="screen">
@@ -206,7 +238,9 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div class="diffDesc" id="diffDesc"></div>
       <div class="menuBtns">
         <button class="btn sec" id="shopBtn">🛒 Loja</button>
-        <button class="btn sec" id="settingsBtn">⚙ Configurações</button>
+        <button class="btn sec" id="achBtn">🏅 Conquistas</button>
+        <button class="btn sec" id="tutBtn">🎓 Tutorial</button>
+        <button class="btn sec" id="settingsBtn">⚙ Ajustes</button>
         <button class="btn sec" id="howBtn" style="grid-column:1 / 3">❓ Como jogar</button>
       </div>
       <div class="statsLine" id="statsLine"></div>
@@ -240,6 +274,15 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   </div>
 </div>
 
+<!-- ACHIEVEMENTS -->
+<div id="achievements" class="screen dim">
+  <div class="panel" style="width:min(820px,100%)">
+    <div class="shopTop"><h2>Conquistas</h2><div class="badge" id="achCount">0/0</div><button class="btn sec" id="achBack">Voltar</button></div>
+    <div class="achList" id="achList"></div>
+    <div class="note">Cada conquista é concedida uma única vez. Skins marcadas com 🏅 só podem ser obtidas por conquistas.</div>
+  </div>
+</div>
+
 <!-- HOW TO -->
 <div id="howto" class="screen dim">
   <div class="panel howto" style="width:min(760px,100%)">
@@ -254,7 +297,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     </ul>
     <div class="duckList" id="duckList"></div>
     <div class="note">Opções de acessibilidade (susto, distorção e efeitos) ficam em Configurações.</div>
-    <div class="row"><button class="btn" id="howBack">Entendi</button></div>
+    <div class="row"><button class="btn sec" id="howTut">🎓 Tutorial interativo</button><button class="btn" id="howBack">Entendi</button></div>
   </div>
 </div>
 
@@ -265,7 +308,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <button class="btn" id="resumeBtn">▶ Continuar</button>
     <button class="btn sec" id="pauseSettingsBtn">⚙ Configurações</button>
     <button class="btn danger" id="quitBtn">Menu principal</button>
-    <div class="note">Sair agora encerra a partida sem pontuação nem moedas.</div>
+    <div class="note">Sair agora encerra a partida sem pontuação nem moedas da partida. Conquistas já obtidas são mantidas.</div>
   </div>
 </div>
 
@@ -287,6 +330,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div class="stat"><b id="goDiff">Normal</b><span>Dificuldade</span></div>
     </div>
     <div class="coinsWon"><span class="coin"></span>+<span id="goCoins">0</span> moedas</div>
+    <div class="goAch" id="goAch"></div>
     <div class="row"><button class="btn" id="goMenu">Menu principal</button></div>
   </div>
 </div>
@@ -360,24 +404,59 @@ const CONFIG = {
 };
 const DIFF_KEYS = ['easy', 'normal', 'hard', 'extreme'];
 
+// Skins são apenas visuais: nenhuma altera dano, precisão, munição ou funcionamento da arma.
+// price > 0  -> comprada com moedas | ach -> exclusiva de conquista (não pode ser comprada)
 const SKINS = [
-  { id: 'classic', name: 'Clássica',           price: 0,    desc: 'Nogueira e aço. Confiável.',            wood: '#8b4f2a', woodDark: '#5a3018', metal: '#4b5662', metalHi: '#a7b4c1', accent: '#d4ad55', pattern: null },
-  { id: 'camo',    name: 'Camuflada',          price: 300,  desc: 'Some no meio do junco.',                wood: '#66733f', woodDark: '#414a28', metal: '#3c4433', metalHi: '#8a9874', accent: '#b3a86e', pattern: 'camo' },
-  { id: 'arctic',  name: 'Ártica',             price: 550,  desc: 'Branca como a névoa da manhã.',         wood: '#e9eef2', woodDark: '#b4c1cb', metal: '#71838f', metalHi: '#e2ecf3', accent: '#79c6ef', pattern: 'snow' },
-  { id: 'rubber',  name: 'Patinho de Borracha', price: 800, desc: 'Amarela, alegre e barulhenta.',         wood: '#ffd23f', woodDark: '#e0a400', metal: '#ff8c1a', metalHi: '#ffc883', accent: '#ffffff', pattern: 'dots' },
-  { id: 'neon',    name: 'Neon',               price: 1100, desc: 'Brilha quando a luz vai embora.',       wood: '#1d2030', woodDark: '#10121b', metal: '#272c42', metalHi: '#5a6390', accent: '#29f0ff', pattern: 'neon', glow: '#29f0ff' },
-  { id: 'gold',    name: 'Dourada',            price: 1800, desc: 'Gravuras finas sobre ouro polido.',     wood: '#3e2012', woodDark: '#24110a', metal: '#d4a017', metalHi: '#fff1a6', accent: '#fff6cc', pattern: 'engrave' },
-  { id: 'cursed',  name: 'Amaldiçoada',        price: 3000, desc: 'Encontrada no fundo do lago. Sussurra.', wood: '#2e1c31', woodDark: '#170c19', metal: '#d8d1bf', metalHi: '#fffaf0', accent: '#a944ff', pattern: 'runes', glow: '#a944ff' }
+  { id: 'classic',  name: 'Clássica',            price: 0,    desc: 'Nogueira e aço. Confiável.',             wood: '#8b4f2a', woodDark: '#5a3018', metal: '#4b5662', metalHi: '#a7b4c1', accent: '#d4ad55', pattern: null },
+  { id: 'camo',     name: 'Camuflada',           price: 300,  desc: 'Some no meio do junco.',                 wood: '#66733f', woodDark: '#414a28', metal: '#3c4433', metalHi: '#8a9874', accent: '#b3a86e', pattern: 'camo' },
+  { id: 'arctic',   name: 'Ártica',              price: 550,  desc: 'Branca como a névoa da manhã.',          wood: '#e9eef2', woodDark: '#b4c1cb', metal: '#71838f', metalHi: '#e2ecf3', accent: '#79c6ef', pattern: 'snow' },
+  { id: 'rubber',   name: 'Patinho de Borracha', price: 800,  desc: 'Amarela, alegre e barulhenta.',          wood: '#ffd23f', woodDark: '#e0a400', metal: '#ff8c1a', metalHi: '#ffc883', accent: '#ffffff', pattern: 'dots' },
+  { id: 'neon',     name: 'Neon',                price: 1100, desc: 'Brilha quando a luz vai embora.',        wood: '#1d2030', woodDark: '#10121b', metal: '#272c42', metalHi: '#5a6390', accent: '#29f0ff', pattern: 'neon', glow: '#29f0ff' },
+  { id: 'gold',     name: 'Dourada',             price: 1800, desc: 'Gravuras finas sobre ouro polido.',      wood: '#3e2012', woodDark: '#24110a', metal: '#d4a017', metalHi: '#fff1a6', accent: '#fff6cc', pattern: 'engrave' },
+  { id: 'marksman', name: 'Atirador',            ach: 'streak25', desc: 'Preta fosca com faixas de competição.', wood: '#1c1c20', woodDark: '#0d0d10', metal: '#2a2c31', metalHi: '#70747d', accent: '#ff3b30', pattern: 'stripes' },
+  { id: 'veteran',  name: 'Veterana',            ach: 'allDiffs', desc: 'Aço escovado e latão de quem já viu de tudo.', wood: '#5a3a22', woodDark: '#3a2414', metal: '#8d949b', metalHi: '#e8edf0', accent: '#c99a3c', pattern: 'engrave' },
+  { id: 'legend',   name: 'Lendária',            ach: 'score25k', desc: 'Madrepérola que muda de cor com a luz.', wood: '#d8d0ff', woodDark: '#9f94d8', metal: '#b9c6d8', metalHi: '#ffffff', accent: '#ff7ad9', pattern: 'holo', glow: '#ffb3f0' },
+  { id: 'cursed',   name: 'Amaldiçoada',         ach: 'awaken',   desc: 'Encontrada no fundo do lago. Sussurra.', wood: '#2e1c31', woodDark: '#170c19', metal: '#d8d1bf', metalHi: '#fffaf0', accent: '#a944ff', pattern: 'runes', glow: '#a944ff' }
 ];
 const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
 
-/* ----------------------------- SAVE ------------------------------- */
+/* --------------------------- CONQUISTAS --------------------------- */
+// Cada conquista: nome, descrição, condição real (test) e recompensa opcional (moedas e/ou skin).
+// when: 'live' (avaliada durante a partida), 'end' (ao terminar uma partida de verdade), 'tutorial'.
+// test(run, save): run = resumo da partida atual (veja runInfo), save = dados salvos.
+const ACHIEVEMENTS = [
+  { id: 'firstDuck', icon: '🦆', name: 'Primeiro Pato',      desc: 'Acerte seu primeiro pato.',                              when: 'live', test: r => r.hits >= 1, reward: { coins: 20 } },
+  { id: 'streak10',  icon: '🎯', name: 'Mão Firme',          desc: 'Acerte 10 patos seguidos em uma partida.',               when: 'live', test: r => r.bestStreak >= 10, progress: s => [s.stats.bestStreak, 10], reward: { coins: 100 } },
+  { id: 'streak25',  icon: '🔥', name: 'Sem Piscar',         desc: 'Acerte 25 patos seguidos em uma partida.',               when: 'live', test: r => r.bestStreak >= 25, progress: s => [s.stats.bestStreak, 25], reward: { skin: 'marksman' } },
+  { id: 'hits50',    icon: '🏹', name: 'Caçador do Lago',    desc: 'Acerte 50 patos em uma única partida.',                  when: 'live', test: r => r.hits >= 50, progress: s => [s.stats.bestHits, 50], reward: { coins: 150 } },
+  { id: 'score5k',   icon: '⭐', name: 'Cinco Mil',          desc: 'Faça 5.000 pontos em uma partida.',                      when: 'live', test: r => r.score >= 5000, progress: s => [s.best, 5000], reward: { coins: 100 } },
+  { id: 'score25k',  icon: '👑', name: 'Lenda do Lago',      desc: 'Faça 25.000 pontos em uma partida.',                     when: 'live', test: r => r.score >= 25000, progress: s => [s.best, 25000], reward: { skin: 'legend' } },
+  { id: 'golden',    icon: '✨', name: 'Ouro no Céu',        desc: 'Acerte um Pato Dourado.',                                when: 'live', test: r => r.goldens >= 1, reward: { coins: 150 } },
+  { id: 'untouched', icon: '🛡', name: 'Nenhum Escapou',     desc: 'Acerte 30 patos sem deixar nenhum escapar.',             when: 'live', test: r => r.hits >= 30 && r.escaped === 0, reward: { coins: 150 } },
+  { id: 'record',    icon: '🏆', name: 'Superando-se',       desc: 'Bata um recorde pessoal que você já tinha.',             when: 'end',  test: r => r.beatRecord, reward: { coins: 50 } },
+  { id: 'perfect',   icon: '🎖', name: 'Precisão Cirúrgica', desc: 'Termine uma partida com 20+ disparos e 90%+ de precisão.', when: 'end', test: r => r.shots >= 20 && r.hits / r.shots >= 0.9, reward: { coins: 150 } },
+  { id: 'extreme',   icon: '💀', name: 'Sangue Frio',        desc: 'Complete uma partida no Extremo com 3.000+ pontos.',     when: 'end',  test: r => r.diff === 'extreme' && r.score >= 3000, reward: { coins: 250 } },
+  { id: 'allDiffs',  icon: '🗺', name: 'Veterano',           desc: 'Complete partidas nas quatro dificuldades.',             when: 'end',  test: (r, s) => DIFF_KEYS.every(k => s.stats.completed[k] > 0), progress: s => [DIFF_KEYS.filter(k => s.stats.completed[k] > 0).length, 4], reward: { skin: 'veteran' } },
+  { id: 'awaken',    icon: '👁', name: 'O Lago Acordou',     desc: 'Descubra o que vive no fundo do lago.',                  when: 'end',  test: r => r.reason === 'tension', reward: { skin: 'cursed' } },
+  { id: 'tutorial',  icon: '🎓', name: 'Aprendiz',           desc: 'Conclua o tutorial interativo.',                         when: 'tutorial', test: () => true, reward: { coins: 50 } }
+];
+const achById = id => ACHIEVEMENTS.find(a => a.id === id);
+function rewardText(a){
+  if (!a.reward) return '';
+  const parts = [];
+  if (a.reward.coins) parts.push('+' + a.reward.coins + ' moedas');
+  if (a.reward.skin) parts.push('Skin ' + skinById(a.reward.skin).name);
+  return parts.join(' · ');
+}
+
+/* ------------------------- SALVAMENTO LOCAL ------------------------- */
 const SAVE_KEY = 'oUltimoPato.save.v1';
 const DEFAULT_SETTINGS = { master: 0.8, music: 0.65, sfx: 0.85, sens: 1.0, fx: 1.0, jumpscare: 'full', reduceDistortion: false, aimMode: 'drag', quality: 'auto' };
 function defaultSave(){
   return { version: 1, best: 0, bestByDiff: { easy: 0, normal: 0, hard: 0, extreme: 0 }, coins: 0, owned: ['classic'], equipped: 'classic',
     difficulty: 'normal', settings: Object.assign({}, DEFAULT_SETTINGS),
-    stats: { games: 0, ducks: 0, shots: 0, escaped: 0, bestStreak: 0, scares: 0, coinsTotal: 0 }, tutorialSeen: false };
+    stats: { games: 0, ducks: 0, shots: 0, escaped: 0, bestStreak: 0, bestHits: 0, goldens: 0, scares: 0, coinsTotal: 0, completed: { easy: 0, normal: 0, hard: 0, extreme: 0 } },
+    achievements: [], tutorialSeen: false };
 }
 const vnum = (v, d, min, max) => (typeof v === 'number' && isFinite(v)) ? clamp(v, min, max) : d;
 const vint = (v, d, min, max) => Math.floor(vnum(v, d, min, max));
@@ -388,7 +467,13 @@ function sanitize(raw){
   d.best = vint(raw.best, 0, 0, 1e9);
   if (raw.bestByDiff && typeof raw.bestByDiff === 'object') DIFF_KEYS.forEach(k => d.bestByDiff[k] = vint(raw.bestByDiff[k], 0, 0, 1e9));
   d.coins = vint(raw.coins, 0, 0, 1e9);
-  if (Array.isArray(raw.owned)) d.owned = Array.from(new Set(['classic'].concat(raw.owned.filter(id => typeof id === 'string' && SKINS.some(s => s.id === id)))));
+  if (Array.isArray(raw.achievements)) d.achievements = Array.from(new Set(raw.achievements.filter(id => typeof id === 'string' && achById(id))));
+  // skins exclusivas só são válidas se a conquista correspondente existir no save
+  if (Array.isArray(raw.owned)) d.owned = Array.from(new Set(['classic'].concat(raw.owned.filter(id => {
+    const sk = typeof id === 'string' && SKINS.find(s => s.id === id);
+    return sk && (!sk.ach || d.achievements.indexOf(sk.ach) >= 0);
+  }))));
+  ACHIEVEMENTS.forEach(a => { if (a.reward && a.reward.skin && d.achievements.indexOf(a.id) >= 0 && d.owned.indexOf(a.reward.skin) < 0) d.owned.push(a.reward.skin); });
   d.equipped = (typeof raw.equipped === 'string' && d.owned.indexOf(raw.equipped) >= 0) ? raw.equipped : 'classic';
   d.difficulty = venum(raw.difficulty, 'normal', DIFF_KEYS);
   const s = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
@@ -398,7 +483,8 @@ function sanitize(raw){
     reduceDistortion: s.reduceDistortion === true, aimMode: venum(s.aimMode, 'drag', ['drag', 'direct']), quality: venum(s.quality, 'auto', ['auto', 'high', 'medium', 'low'])
   };
   const st = raw.stats && typeof raw.stats === 'object' ? raw.stats : {};
-  Object.keys(d.stats).forEach(k => d.stats[k] = vint(st[k], 0, 0, 1e12));
+  Object.keys(d.stats).forEach(k => { if (k !== 'completed') d.stats[k] = vint(st[k], 0, 0, 1e12); });
+  if (st.completed && typeof st.completed === 'object') DIFF_KEYS.forEach(k => d.stats.completed[k] = vint(st.completed[k], 0, 0, 1e9));
   d.tutorialSeen = raw.tutorialSeen === true;
   return d;
 }
@@ -415,7 +501,8 @@ const Store = {
 };
 const S = () => Store.data.settings;
 
-/* ----------------------------- AUDIO ------------------------------ */
+/* ------------------------------ ÁUDIO ------------------------------ */
+// Todo som é sintetizado com Web Audio. Barramentos: geral -> música / efeitos (ambiente passa por efeitos).
 const midiF = m => 440 * Math.pow(2, (m - 69) / 12);
 const SND = {
   ctx: null, master: null, musicVol: null, musicDuck: null, musicBus: null, sfxVol: null, sfxBus: null, ambDuck: null, ambBus: null,
@@ -1016,6 +1103,8 @@ function skinPattern(skin){
   if (skin.pattern === 'snow'){ g.fillStyle = 'rgba(120,170,210,.35)'; for (let i = 0; i < 26; i++){ g.beginPath(); g.arc(r() * 64, r() * 64, 1 + r() * 2.2, 0, TAU); g.fill(); } }
   if (skin.pattern === 'dots'){ g.fillStyle = 'rgba(255,255,255,.55)'; for (let y = 0; y < 64; y += 16) for (let x = 0; x < 64; x += 16){ g.beginPath(); g.arc(x + (y % 32 ? 8 : 0), y + 4, 4, 0, TAU); g.fill(); } }
   if (skin.pattern === 'engrave'){ g.strokeStyle = 'rgba(255,240,170,.45)'; g.lineWidth = 1.2; for (let i = 0; i < 6; i++){ g.beginPath(); g.arc(r() * 64, r() * 64, 6 + r() * 10, r() * 3, r() * 3 + 3.5); g.stroke(); } }
+  if (skin.pattern === 'stripes'){ g.fillStyle = 'rgba(255,59,48,.75)'; for (let i = -64; i < 128; i += 22){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 7, 0); g.lineTo(i + 7 - 64, 64); g.lineTo(i - 64, 64); g.fill(); } }
+  if (skin.pattern === 'holo'){ const hg = g.createLinearGradient(0, 0, 64, 64); ['#ffd1f2', '#c8d6ff', '#c9fff0', '#fff3c4', '#ffd1f2'].forEach((c, i) => hg.addColorStop(i / 4, c)); g.globalAlpha = 0.7; g.fillStyle = hg; g.fillRect(0, 0, 64, 64); g.globalAlpha = 1; }
   if (skin.pattern === 'runes'){ g.strokeStyle = 'rgba(190,110,255,.7)'; g.lineWidth = 1.6; for (let i = 0; i < 6; i++){ const x = r() * 54 + 5, y = r() * 54 + 5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 5, y + 8); g.lineTo(x - 3, y + 10); g.moveTo(x + 2, y + 3); g.lineTo(x + 7, y); g.stroke(); } }
   const p = ctx.createPattern(c, 'repeat'); patternCache.set(skin.id, p); return p;
 }
@@ -1105,15 +1194,18 @@ const diffCfg = () => CONFIG.difficulties[G.diff] || CONFIG.difficulties.normal;
 function resetGame(){
   Object.assign(G, { score: 0, lives: CONFIG.lives, ammo: CONFIG.magazine, reloading: false, reloadT: 0, cooldown: 0, streak: 0, bestStreak: 0, mult: 1,
     shots: 0, hits: 0, misses: 0, escaped: 0, ducks: [], spawnT: 1.0, elapsed: 0, heat: 0, speedMul: 1, tension: CONFIG.tension.min, vis: 0,
-    jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, nextGlitch: rand(14, 22), hurtT: 0 });
+    jumpscareUsed: false, js: null, finalized: false, endReason: null, coinsEarned: 0, newRecord: false, beatRecord: false, recoil: 0, pumpT: 0, shake: 0, flash: 0, glitch: 0, nextGlitch: rand(14, 22), hurtT: 0,
+    goldens: 0, achRun: [], achCoins: 0, tutorial: null });
   parts.length = 0; popups.length = 0;
   G.aimX = W * 0.5; G.aimY = H * 0.35;
 }
 
+/* ------------------------ INÍCIO DE PARTIDA ------------------------ */
 function startGame(){
   SND.init();
   G.diff = Store.data.difficulty;
   resetGame();
+  $('tutBox').classList.remove('show');
   G.state = 'playing';
   Scene.time = 0; Scene.eyeT = rand(16, 26); Scene.shadowT = 15;
   UI.show(null); HUD.show(true); HUD.all();
@@ -1122,6 +1214,16 @@ function startGame(){
   tryFullscreen();
   HUD.hint(S().aimMode === 'direct' ? 'Toque no alvo para mirar e atirar' : 'Arraste para mirar · Toque para atirar', Store.data.tutorialSeen ? 2.2 : 4.5);
   if (!Store.data.tutorialSeen){ Store.data.tutorialSeen = true; Store.save(); }
+}
+function startTutorial(){
+  SND.init();
+  G.diff = 'easy';
+  resetGame();
+  G.state = 'playing';
+  Scene.time = 0; Scene.eyeT = 999; Scene.shadowT = 999;
+  UI.show(null); HUD.show(true); HUD.all();
+  SND.startMusic(); Input.reset(); tryFullscreen();
+  Tut.start();
 }
 
 function pickType(){
@@ -1133,8 +1235,11 @@ function pickType(){
 }
 function activeDucks(){ let n = 0; for (const d of G.ducks) if (d.state === 'entering' || d.state === 'flying' || d.state === 'escaping') n++; return n; }
 
-function spawnDuck(){
-  const D = diffCfg(), type = pickType();
+/* ----------------------- GERENCIAMENTO DOS PATOS ----------------------- */
+// opt (usado pelo tutorial): { type, speedK, life }
+function spawnDuck(opt){
+  opt = opt || {};
+  const D = diffCfg(), type = opt.type || pickType();
   const size = H * 0.115 * type.size, r = size * 0.62;
   const m = Math.random();
   let x, y, heading, mode;
@@ -1143,7 +1248,8 @@ function spawnDuck(){
   else { mode = 'reeds'; x = W * rand(0.2, 0.8); y = L.shore - H * 0.02; heading = -Math.PI / 2 + rand(-0.6, 0.6); }
   const d = {
     id: ++G.uid, type, size, r, x, y, heading, target: heading, base: heading, spawnMode: mode,
-    speed0: D.speed * type.speed * rand(0.9, 1.1), t: 0, life: rand(D.life[0], D.life[1]) * (type.id === 'golden' ? 0.75 : 1) * (type.id === 'goose' ? 1.15 : 1),
+    speed0: D.speed * type.speed * rand(0.9, 1.1) * (opt.speedK || 1), t: 0,
+    life: opt.life || rand(D.life[0], D.life[1]) * (type.id === 'golden' ? 0.75 : 1) * (type.id === 'goose' ? 1.15 : 1),
     state: 'entering', entered: false, counted: false, scored: false, flap: rand(0, TAU), facing: Math.cos(heading) >= 0 ? 1 : -1,
     ph: rand(0, TAU), timer: rand(0.3, 0.8), sign: Math.random() < 0.5 ? 1 : -1, burst: 0, baseT: rand(1.5, 3), hitT: 0, vx: 0, vy: 0, spin: 0, stare: false,
     splashY: lerp(L.horizon, L.shore, rand(0.15, 0.7)), quackT: rand(1, 4)
@@ -1222,6 +1328,7 @@ function updateDuck(d, dt){
 function onEscape(d){
   if (d.counted || d.scored) return; // cada pato só pode custar uma vida e nunca depois de atingido
   d.counted = true; d.state = 'escaped';
+  if (G.tutorial){ Tut.onEscape(d); return; } // no tutorial a vida só cai na etapa de demonstração
   G.escaped++; G.lives = Math.max(0, G.lives - 1);
   SND.escape(); HUD.lives(true);
   const px = clamp(d.x, W * 0.08, W * 0.92), py = clamp(d.y, H * 0.12, H * 0.6);
@@ -1248,6 +1355,7 @@ function addTension(amount){
   G.tension = clamp(G.tension + amount * (1 + rand(-T.jitter, T.jitter)), T.min, T.max);
 }
 
+/* ------------------------ DISPAROS E COLISÕES ------------------------ */
 function fire(){
   if (G.state !== 'playing') return;
   if (G.reloading || G.cooldown > 0) return;
@@ -1261,6 +1369,7 @@ function fire(){
   if (d){
     d.scored = true; d.state = 'hit'; d.hitT = 0;
     G.hits++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak);
+    if (d.type.id === 'golden') G.goldens++;
     const oldMult = G.mult;
     G.mult = Math.min(CONFIG.combo.maxMult, 1 + Math.floor(G.streak / CONFIG.combo.hitsPerStep));
     const pts = d.type.points * G.mult;
@@ -1268,17 +1377,19 @@ function fire(){
     feathers(d.x, d.y, d, Q.level === 0 ? 7 : 14); ring(d.x, d.y, '#fff3b0', d.size * 0.5);
     popups.push({ x: d.x, y: d.y - d.size * 0.4, text: '+' + pts + (G.mult > 1 ? '  x' + G.mult : ''), c: d.type.id === 'golden' ? '#ffe14a' : '#ffffff', life: 0.9, big: d.type.id === 'golden' });
     SND.hit(d.type.id === 'golden');
-    addTension(TC.hit + Math.min(TC.streakBonusCap, TC.streakBonus * G.streak));
+    if (!G.tutorial) addTension(TC.hit + Math.min(TC.streakBonusCap, TC.streakBonus * G.streak));
     HUD.score(); HUD.mult(G.mult !== oldMult);
+    if (!G.tutorial) Ach.check('live');
   } else {
     G.misses++; G.streak = 0; G.mult = 1;
     ring(G.aimX, G.aimY, 'rgba(255,255,255,.6)', H * 0.02);
-    addTension(TC.miss);
+    if (!G.tutorial) addTension(TC.miss);
     HUD.mult(false);
   }
   HUD.ammo();
   if (G.ammo === 0) HUD.needReload(true);
-  if (G.tension >= TC.max && !G.jumpscareUsed) startJumpscare();
+  if (G.tutorial) Tut.onShot(!!d);
+  else if (G.tension >= TC.max && !G.jumpscareUsed) startJumpscare();
 }
 
 function reload(){
@@ -1286,17 +1397,20 @@ function reload(){
   G.reloading = true; G.reloadT = 0; SND.reload(CONFIG.reloadTime); HUD.needReload(false);
 }
 
+/* -------------------------- PAUSA E FIM -------------------------- */
 function pauseGame(){
   if (G.state !== 'playing') return;
+  if (G.tutorial) Tut.onPause();
   G.state = 'paused'; SND.setPaused(true); Input.reset(); UI.show('pause');
 }
 function resumeGame(){
   if (G.state !== 'paused') return;
   G.state = 'playing'; SND.setPaused(false); Input.reset(); UI.show(null); HUD.show(true);
+  if (G.tutorial) Tut.onResume();
 }
 function quitToMenu(){
   // encerra sem contabilizar resultados ou recompensas
-  G.finalized = true; G.ducks = []; parts.length = 0; popups.length = 0;
+  G.finalized = true; G.tutorial = null; G.ducks = []; parts.length = 0; popups.length = 0;
   SND.stopMusic(true); SND.paused = false;
   goMenu();
 }
@@ -1383,12 +1497,16 @@ function finalizeGame(){
   const D = diffCfg(), data = Store.data;
   G.coinsEarned = Math.max(0, Math.floor(G.score / CONFIG.coins.pointsPerCoin * D.coinMul));
   G.newRecord = G.score > data.best && G.score > 0;
+  G.beatRecord = data.best > 0 && G.score > data.best; // recorde anterior existente e superado
   data.best = Math.max(data.best, G.score);
   data.bestByDiff[G.diff] = Math.max(data.bestByDiff[G.diff] || 0, G.score);
   data.coins += G.coinsEarned;
   const st = data.stats; st.games++; st.ducks += G.hits; st.shots += G.shots; st.escaped += G.escaped; st.bestStreak = Math.max(st.bestStreak, G.bestStreak); st.coinsTotal += G.coinsEarned;
   if (G.endReason === 'tension') st.scares++;
+  st.bestHits = Math.max(st.bestHits, G.hits); st.goldens += G.goldens;
+  st.completed[G.diff] = (st.completed[G.diff] || 0) + 1; // partida concluída (não abandonada)
   Store.save();
+  Ach.check('live'); Ach.check('end');
 }
 
 function gunPivot(){ return { x: W * 0.64, y: H * 1.04 }; }
@@ -1399,6 +1517,7 @@ function gunTip(){
   return { x: p.x + Math.cos(a) * L0, y: p.y + Math.sin(a) * L0 };
 }
 
+/* ---------------------- ATUALIZAÇÃO DA SIMULAÇÃO ---------------------- */
 function updatePlaying(dt){
   const D = diffCfg();
   G.elapsed += dt;
@@ -1407,10 +1526,13 @@ function updatePlaying(dt){
   const interval = lerp(D.spawn, D.spawnMin, G.heat);
   const maxD = Math.round(lerp(D.maxDucks, D.maxDucksCap, G.heat));
   const act = activeDucks();
-  G.spawnT -= dt;
-  if (act === 0 && G.spawnT > 0.7) G.spawnT = 0.7;
-  if (G.spawnT <= 0){ if (act < maxD){ spawnDuck(); G.spawnT = interval * rand(0.75, 1.25); } else G.spawnT = 0.3; }
-  if (G.reloading){ G.reloadT += dt; HUD.reload(G.reloadT / CONFIG.reloadTime); if (G.reloadT >= CONFIG.reloadTime){ G.reloading = false; G.ammo = CONFIG.magazine; HUD.ammo(); HUD.reload(0); } }
+  if (G.tutorial) Tut.update(dt);
+  else {
+    G.spawnT -= dt;
+    if (act === 0 && G.spawnT > 0.7) G.spawnT = 0.7;
+    if (G.spawnT <= 0){ if (act < maxD){ spawnDuck(); G.spawnT = interval * rand(0.75, 1.25); } else G.spawnT = 0.3; }
+  }
+  if (G.reloading){ G.reloadT += dt; HUD.reload(G.reloadT / CONFIG.reloadTime); if (G.reloadT >= CONFIG.reloadTime){ G.reloading = false; G.ammo = CONFIG.magazine; HUD.ammo(); HUD.reload(0); if (G.tutorial) Tut.onReloadDone(); } }
   if (G.cooldown > 0) G.cooldown = Math.max(0, G.cooldown - dt);
   for (let i = 0; i < G.ducks.length; i++){
     updateDuck(G.ducks[i], dt);
@@ -1418,12 +1540,12 @@ function updatePlaying(dt){
   }
   G.ducks = G.ducks.filter(d => d.state !== 'gone' && d.state !== 'escaped');
   updateParts(dt);
-  updateVis(dt);
+  if (!(G.tutorial && G.tutorial.ownVis)) updateVis(dt);
   // falhas visuais ocasionais (mais frequentes com o pavor)
   const red = S().reduceDistortion;
   G.nextGlitch -= dt;
   if (G.nextGlitch <= 0){
-    if (G.vis > 0.35 && !red && S().fx > 0.05) G.glitch = rand(0.06, 0.14 + G.vis * 0.1);
+    if (G.vis > 0.35 && !red && S().fx > 0.05 && !G.tutorial) G.glitch = rand(0.06, 0.14 + G.vis * 0.1);
     G.nextGlitch = lerp(16, 3.5, clamp((G.vis - 0.35) / 0.6, 0, 1)) * rand(0.7, 1.3);
   }
   if (G.glitch > 0) G.glitch -= dt;
@@ -1455,6 +1577,170 @@ function updateMenu(dt){
   for (const d of G.menuDucks){ d.t += dt; d.x += Math.cos(d.heading) * H * 0.16 * dt; d.y += Math.sin(d.heading) * H * 0.16 * dt + Math.sin(d.t * 1.5 + d.ph) * 0.3; d.flap += dt * d.type.flap; }
   G.menuDucks = G.menuDucks.filter(d => d.x > -120 && d.x < W + 120);
 }
+
+/* ------------------------- LOJA E CONQUISTAS ------------------------- */
+function runInfo(){
+  return { hits: G.hits, bestStreak: G.bestStreak, score: G.score, goldens: G.goldens, escaped: G.escaped, shots: G.shots,
+    diff: G.diff, reason: G.endReason, beatRecord: !!G.beatRecord };
+}
+const Ach = {
+  has(id){ return Store.data.achievements.indexOf(id) >= 0; },
+  // Desbloqueia uma vez só; a recompensa é concedida no mesmo momento e salva.
+  unlock(id){
+    const a = achById(id); if (!a || this.has(id)) return false;
+    const d = Store.data; d.achievements.push(id);
+    let coins = 0;
+    if (a.reward){
+      if (a.reward.coins){ coins = a.reward.coins; d.coins += coins; d.stats.coinsTotal += coins; }
+      if (a.reward.skin && d.owned.indexOf(a.reward.skin) < 0) d.owned.push(a.reward.skin);
+    }
+    Store.save();
+    if (G.state !== 'menu'){ G.achRun.push(a); G.achCoins += coins; }
+    Toast.show(a);
+    return true;
+  },
+  check(when){
+    const r = runInfo(), s = Store.data;
+    for (const a of ACHIEVEMENTS){
+      if (a.when !== when || this.has(a.id)) continue;
+      let ok = false; try { ok = !!a.test(r, s); } catch (e) { ok = false; }
+      if (ok) this.unlock(a.id);
+    }
+  }
+};
+const Shop = {
+  // estado de exibição de uma skin na loja
+  state(sk){
+    const d = Store.data, owned = d.owned.indexOf(sk.id) >= 0;
+    if (d.equipped === sk.id) return { key: 'eq', label: 'Equipada' };
+    if (owned) return { key: 'own', label: sk.ach ? 'Conquistada' : sk.price > 0 ? 'Comprada' : 'Gratuita' };
+    if (sk.ach || d.coins < sk.price) return { key: 'lock', label: 'Bloqueada' };
+    return { key: 'avail', label: 'Disponível' };
+  },
+  buy(sk){
+    const d = Store.data;
+    if (sk.ach || !(sk.price > 0) || d.owned.indexOf(sk.id) >= 0 || d.coins < sk.price){ SND.denied(); return false; } // compras inválidas/duplicadas
+    d.coins -= sk.price; d.owned.push(sk.id); d.equipped = sk.id; Store.save(); SND.coin(); return true;
+  },
+  equip(sk){
+    const d = Store.data;
+    if (d.owned.indexOf(sk.id) < 0){ SND.denied(); return false; } // não equipa skin bloqueada
+    d.equipped = sk.id; Store.save(); return true;
+  }
+};
+const Toast = {
+  q: [], busy: false,
+  show(a){ this.q.push(a); if (!this.busy) this.next(); },
+  next(){
+    const a = this.q.shift(); const el = $('toast');
+    if (!a){ this.busy = false; return; }
+    this.busy = true;
+    el.innerHTML = '';
+    const ic = document.createElement('span'); ic.className = 'ti'; ic.textContent = a.icon;
+    const box = document.createElement('div');
+    box.innerHTML = '<small>Conquista desbloqueada</small>';
+    const b = document.createElement('b'); b.textContent = a.name; box.appendChild(b);
+    const rw = document.createElement('div'); rw.className = 'tr'; rw.textContent = rewardText(a); box.appendChild(rw);
+    el.appendChild(ic); el.appendChild(box); el.classList.add('show'); SND.coin();
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => this.next(), 400); }, 2600);
+  }
+};
+
+/* ------------------------------ TUTORIAL ------------------------------ */
+// Tutorial curto, opcional e interativo. Sem tensão, sem fim de jogo, sem recompensas de partida.
+const Tut = {
+  steps: [
+    { id: 'aim',     title: 'Mover a mira',          text: 'Arraste o dedo em qualquer parte da tela para mover a mira.', direct: 'Toque e arraste: a mira vai para onde está o seu dedo.' },
+    { id: 'fire',    title: 'Disparar',              text: 'Dê um toque rápido na tela para atirar. Arrastar não dispara.', direct: 'Toque rápido no ponto onde quer atirar.' },
+    { id: 'hit',     title: 'Acerte o pato',         text: 'Coloque a mira sobre o pato e atire. Cada tipo de pato vale uma pontuação diferente.' },
+    { id: 'combo',   title: 'Multiplicador',         text: 'Acerte 3 patos seguidos para ativar o x2 (até x5). Um tiro errado zera a sequência.' },
+    { id: 'empty',   title: 'Seis disparos',         text: 'A espingarda tem 6 cartuchos (canto inferior esquerdo). Atire até esvaziar.' },
+    { id: 'reload',  title: 'Recarregar',            text: 'Toque no botão RECARGA. Enquanto recarrega, não é possível atirar.' },
+    { id: 'escape',  title: 'Vidas',                 text: 'Deixe este pato fugir. Cada pato que escapa custa 1 vida; sem vidas, a partida acaba.' },
+    { id: 'tension', title: 'O lago muda',           text: 'Cada tiro, certo ou errado, deixa o ambiente mais tenso. Não existe barra nem aviso: observe a luz, as cores e os sons.', btn: 'Continuar' },
+    { id: 'pause',   title: 'Pausa e configurações', text: 'Toque no botão de pausa (canto superior direito). Lá ficam Continuar, Configurações e Menu. Depois, continue.' },
+    { id: 'done',    title: 'Pronto para caçar!',    text: 'Você aprendeu o básico. Escolha a dificuldade no menu e boa caçada.', btn: 'Concluir' }
+  ],
+  cur(){ return G.tutorial ? this.steps[G.tutorial.i].id : null; },
+  start(){
+    G.tutorial = { i: 0, dist: 0, lx: G.aimX, ly: G.aimY, wait: 0, spawnT: 0.4, vt: 0, ownVis: false, paused: false, escaped: false };
+    $('tutBox').classList.add('show');
+    $('hint').classList.remove('show');
+    this.render();
+  },
+  render(){
+    const T = G.tutorial; if (!T) return;
+    const st = this.steps[T.i];
+    $('tutStep').textContent = 'Tutorial · ' + (T.i + 1) + ' de ' + this.steps.length;
+    $('tutTitle').textContent = st.title;
+    $('tutText').textContent = (S().aimMode === 'direct' && st.direct) ? st.direct : st.text;
+    $('tutStatus').textContent = '';
+    const nb = $('tutNext'); nb.hidden = !st.btn; nb.textContent = st.btn || '';
+  },
+  status(t){ const el = $('tutStatus'); if (el.textContent !== t) el.textContent = t; },
+  next(){
+    const T = G.tutorial; if (!T) return;
+    if (T.i >= this.steps.length - 1) return;
+    T.i++; T.wait = 0; T.ownVis = false; SND.ui();
+    const id = this.cur();
+    if (id === 'reload' && G.ammo === CONFIG.magazine && !G.reloading){ G.ammo = 0; HUD.ammo(); HUD.needReload(true); }
+    if (id === 'escape'){ for (const d of G.ducks) if (!d.scored) d.state = 'gone'; T.escaped = false; T.spawnT = 0.5; }
+    if (id === 'tension'){ T.ownVis = true; T.vt = 0; }
+    this.render();
+  },
+  later(sec){ const T = G.tutorial; if (T && T.wait <= 0) T.wait = sec; },
+  update(dt){
+    const T = G.tutorial; if (!T) return;
+    const id = this.cur(), mallard = CONFIG.duckTypes[0];
+    const moved = Math.hypot(G.aimX - T.lx, G.aimY - T.ly); T.lx = G.aimX; T.ly = G.aimY;
+    if (id === 'aim'){
+      T.dist += moved; const need = Math.min(W, H) * 0.9;
+      this.status('Progresso: ' + Math.min(100, Math.round(T.dist / need * 100)) + '%');
+      if (T.dist >= need) this.later(0.3);
+    }
+    if ((id === 'hit' || id === 'combo' || id === 'empty' || id === 'reload' || id === 'pause') && activeDucks() === 0){
+      T.spawnT -= dt; if (T.spawnT <= 0){ spawnDuck({ type: mallard, speedK: 0.55, life: 999 }); T.spawnT = 0.7; }
+    }
+    if (id === 'combo') this.status('Sequência: ' + G.streak + ' / 3' + (G.mult > 1 ? '  →  x' + G.mult + '!' : ''));
+    if (id === 'empty') this.status('Cartuchos restantes: ' + G.ammo);
+    if (id === 'escape' && !T.escaped && activeDucks() === 0){
+      T.spawnT -= dt; if (T.spawnT <= 0){ spawnDuck({ type: mallard, speedK: 1.1, life: 1.4 }); T.spawnT = 1.2; }
+    }
+    if (id === 'tension'){ // demonstração da transformação do cenário, sem revelar o evento final
+      T.vt += dt; G.vis = 0.6 * (0.5 - 0.5 * Math.cos(T.vt * 0.7)); HUD.phase(G.vis);
+    }
+    if (T.wait > 0){ T.wait -= dt; if (T.wait <= 0) this.next(); }
+  },
+  onShot(hit){
+    const id = this.cur();
+    if (id === 'fire') this.later(0.5);
+    else if (id === 'hit' && hit) this.later(0.9);
+    else if (id === 'combo' && G.mult >= 2) this.later(0.9);
+    else if (id === 'empty' && G.ammo === 0) this.later(0.5);
+    else if (id === 'escape' && hit) this.status('Você acertou! Deixe o próximo pato escapar.');
+  },
+  onReloadDone(){ if (this.cur() === 'reload') this.later(0.4); },
+  onEscape(d){
+    if (this.cur() !== 'escape' || G.tutorial.escaped) return;
+    G.tutorial.escaped = true;
+    G.escaped++; G.lives = Math.max(1, G.lives - 1); // nunca termina a partida no tutorial
+    SND.escape(); HUD.lives(true); G.hurtT = 0.35 * S().fx;
+    popups.push({ x: clamp(d.x, W * 0.08, W * 0.92), y: clamp(d.y, H * 0.12, H * 0.6), text: 'ESCAPOU! -1 vida', c: '#ff6b5e', life: 1.2 });
+    this.status('Viu? Uma vida a menos.'); this.later(1.6);
+  },
+  onPause(){ if (this.cur() === 'pause') G.tutorial.paused = true; },
+  onResume(){ if (this.cur() === 'pause' && G.tutorial.paused) this.next(); },
+  finish(){
+    Store.data.tutorialSeen = true; Store.save();
+    Ach.unlock('tutorial');
+    this.exit();
+  },
+  exit(){
+    G.tutorial = null; $('tutBox').classList.remove('show');
+    SND.stopMusic(true); SND.paused = false;
+    goMenu();
+  }
+};
 
 /* ----------------------------- RENDER ----------------------------- */
 function render(){
@@ -1549,7 +1835,7 @@ function drawJumpscare(g){
   }
 }
 
-/* ------------------------------ INPUT ----------------------------- */
+/* -------------------------- CONTROLES POR TOQUE -------------------------- */
 const Input = {
   ptrs: new Map(), aimId: null,
   reset(){ this.ptrs.clear(); this.aimId = null; },
@@ -1639,11 +1925,11 @@ const HUD = {
   hint(text, secs){ const h = $('hint'); h.textContent = text; h.classList.add('show'); clearTimeout(this.hintT); this.hintT = setTimeout(() => h.classList.remove('show'), secs * 1000); }
 };
 
-/* ------------------------------- UI ------------------------------- */
+/* -------------------------- INTERFACE E MENUS -------------------------- */
 const UI = {
   cur: null, settingsReturn: 'menu',
   show(name){
-    ['menu', 'settings', 'shop', 'howto', 'pause', 'gameover'].forEach(n => $(n).classList.toggle('show', n === name));
+    ['menu', 'settings', 'shop', 'achievements', 'howto', 'pause', 'gameover'].forEach(n => $(n).classList.toggle('show', n === name));
     this.cur = name;
   },
   init(){
@@ -1653,6 +1939,12 @@ const UI = {
     $('settingsBtn').onclick = () => { this.settingsReturn = 'menu'; this.syncSettings(); this.show('settings'); };
     $('howBtn').onclick = () => this.show('howto');
     $('howBack').onclick = () => this.show('menu');
+    $('howTut').onclick = () => startTutorial();
+    $('tutBtn').onclick = () => startTutorial();
+    $('achBtn').onclick = () => { this.renderAchievements(); this.show('achievements'); };
+    $('achBack').onclick = () => { this.refreshMenu(); this.show('menu'); };
+    $('tutSkip').onclick = () => Tut.exit();
+    $('tutNext').onclick = () => { if (Tut.cur() === 'done') Tut.finish(); else Tut.next(); };
     $('shopBack').onclick = () => { this.refreshMenu(); this.show('menu'); };
     $('settingsBack').onclick = () => { this.show(this.settingsReturn); };
     $('resumeBtn').onclick = () => resumeGame();
@@ -1697,30 +1989,50 @@ const UI = {
     const st = d.stats;
     $('statsLine').textContent = st.games ? `${st.games} partidas · ${fmt(st.ducks)} patos · maior sequência ${st.bestStreak}` : 'Primeira caçada? Veja "Como jogar".';
     if (!Store.ok) $('statsLine').textContent += ' · (progresso não será salvo)';
+    $('achBtn').textContent = '🏅 Conquistas ' + d.achievements.length + '/' + ACHIEVEMENTS.length;
     $('tagline').textContent = st.scares > 0 ? pick(['Um dia lindo para caçar no lago.', 'O lago parece tranquilo. Parece.', 'Os patos voltaram. Todos menos um.']) : 'Um dia lindo para caçar no lago.';
   },
   renderShop(){
     const d = Store.data; $('shopCoins').textContent = fmt(d.coins);
     const grid = $('shopGrid'); grid.innerHTML = '';
     SKINS.forEach(sk => {
-      const owned = d.owned.indexOf(sk.id) >= 0, eq = d.equipped === sk.id;
-      const card = document.createElement('div'); card.className = 'skin' + (eq ? ' eq' : '');
+      const st = Shop.state(sk), ach = sk.ach ? achById(sk.ach) : null;
+      const card = document.createElement('div'); card.className = 'skin' + (st.key === 'eq' ? ' eq' : '') + (st.key === 'lock' && ach ? ' locked' : '');
       const cv = mkCanvas(240, 120); card.appendChild(cv);
-      const g = cv.getContext('2d'); drawGun(g, sk, { x: 98, y: 60, ang: Math.PI / 2, u: 0.6, pump: 0, glowK: 1 });
+      drawGun(cv.getContext('2d'), sk, { x: 98, y: 60, ang: Math.PI / 2, u: 0.6, pump: 0, glowK: 1 });
+      const chip = document.createElement('span'); chip.className = 'st ' + st.key; chip.textContent = st.label; card.appendChild(chip);
       const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = sk.name; card.appendChild(nm);
       const ds = document.createElement('div'); ds.className = 'ds'; ds.textContent = sk.desc; card.appendChild(ds);
-      const b = document.createElement('button'); b.className = 'btn' + (owned ? ' sec' : '');
-      if (eq){ b.textContent = '✔ Equipada'; b.disabled = true; }
-      else if (owned){ b.textContent = 'Equipar'; b.onclick = () => { d.equipped = sk.id; Store.save(); this.renderShop(); }; }
+      if (ach){ const t = document.createElement('div'); t.className = 'achTag'; t.textContent = '🏅 Conquista "' + ach.name + '"' + (st.key === 'lock' ? ': ' + ach.desc : ''); card.appendChild(t); }
+      const b = document.createElement('button'); b.className = 'btn' + (st.key === 'own' ? ' sec' : '');
+      if (st.key === 'eq'){ b.textContent = '✔ Equipada'; b.disabled = true; }
+      else if (st.key === 'own'){ b.textContent = 'Equipar'; b.onclick = () => { if (Shop.equip(sk)) this.renderShop(); }; }
+      else if (ach){ b.textContent = '🔒 Só por conquista'; b.disabled = true; }
       else {
-        b.innerHTML = `<span class="coin"></span> ${fmt(sk.price)}`;
-        if (d.coins < sk.price) b.disabled = true;
-        b.onclick = () => {
-          if (d.coins < sk.price || d.owned.indexOf(sk.id) >= 0){ SND.denied(); return; }
-          d.coins -= sk.price; d.owned.push(sk.id); d.equipped = sk.id; Store.save(); SND.coin(); this.renderShop();
-        };
+        b.innerHTML = '<span class="coin"></span> Comprar · ' + fmt(sk.price);
+        if (d.coins < sk.price){ b.disabled = true; b.innerHTML = '<span class="coin"></span> ' + fmt(sk.price) + ' (faltam ' + fmt(sk.price - d.coins) + ')'; }
+        b.onclick = () => { if (Shop.buy(sk)) this.renderShop(); };
       }
       card.appendChild(b); grid.appendChild(card);
+    });
+  },
+  renderAchievements(){
+    const d = Store.data, list = $('achList'); list.innerHTML = '';
+    $('achCount').textContent = d.achievements.length + '/' + ACHIEVEMENTS.length;
+    ACHIEVEMENTS.forEach(a => {
+      const done = Ach.has(a.id);
+      const el = document.createElement('div'); el.className = 'ach' + (done ? ' done' : '');
+      const ic = document.createElement('div'); ic.className = 'ico'; ic.textContent = a.icon; el.appendChild(ic);
+      const body = document.createElement('div'); body.style.minWidth = '0';
+      const b = document.createElement('b'); b.textContent = (done ? '✔ ' : '') + a.name; body.appendChild(b);
+      const p = document.createElement('p'); p.textContent = a.desc; body.appendChild(p);
+      const rw = document.createElement('div'); rw.className = 'rw'; rw.textContent = 'Recompensa: ' + (rewardText(a) || '—'); body.appendChild(rw);
+      if (!done && a.progress){
+        const pr = a.progress(d), cur = Math.min(pr[0], pr[1]);
+        const bar = document.createElement('div'); bar.className = 'bar'; const i = document.createElement('i'); i.style.width = (cur / pr[1] * 100) + '%'; bar.appendChild(i); body.appendChild(bar);
+        const lbl = document.createElement('span'); lbl.textContent = 'Melhor: ' + fmt(cur) + ' / ' + fmt(pr[1]); body.appendChild(lbl);
+      }
+      el.appendChild(body); list.appendChild(el);
     });
   },
   showGameOver(){
@@ -1734,11 +2046,13 @@ const UI = {
     $('goAcc').textContent = (G.shots > 0 ? Math.round(G.hits / G.shots * 100) : 0) + '%';
     $('goStreak').textContent = G.bestStreak; $('goDiff').textContent = diffCfg().name;
     $('goCoins').textContent = fmt(G.coinsEarned);
+    $('goAch').textContent = G.achRun.length ? '🏅 ' + G.achRun.map(a => a.name).join(', ') + (G.achCoins ? ' (+' + fmt(G.achCoins) + ' moedas de bônus)' : '') : '';
     setTimeout(() => { if (G.state === 'gameover'){ this.show('gameover'); if (G.coinsEarned > 0) SND.coin(); } }, G.endReason === 'lives' ? 650 : 200);
   }
 };
 
 function goMenu(){
+  G.tutorial = null; $('tutBox').classList.remove('show');
   G.state = 'menu'; G.vis = 0; G.ducks = []; G.menuDucks = []; G.glitch = 0; G.shake = 0; G.flash = 0; G.hurtT = 0;
   HUD.show(false); Input.reset(); UI.refreshMenu(); UI.show('menu');
   if (SND.ctx){ SND.musicOn = true; SND.startMusic(); }
@@ -1794,7 +2108,7 @@ function frame(ts){
   }
 }
 
-/* ------------------------------ BOOT ------------------------------ */
+/* --------------------------- INICIALIZAÇÃO --------------------------- */
 function showError(msg){ try { $('errorMsg').textContent = msg; ['menu','settings','shop','howto','pause','gameover'].forEach(n => $(n).classList.remove('show')); $('error').classList.add('show'); $('boot').classList.add('hide'); } catch (e) {} }
 function boot(){
   try {
@@ -1823,7 +2137,7 @@ function boot(){
 }
 window.addEventListener('error', e => { if (G.state === 'boot') showError('Erro ao iniciar: ' + e.message); });
 // ganchos para testes automatizados
-window.__pato = { G, CONFIG, Store, startGame, fire, reload, pauseGame, resumeGame, startJumpscare, spawnDuck };
+window.__pato = { G, CONFIG, Store, startGame, startTutorial, Tut, Ach, Shop, SKINS, fire, reload, pauseGame, resumeGame, startJumpscare, spawnDuck };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
